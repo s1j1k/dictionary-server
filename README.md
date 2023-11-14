@@ -8,11 +8,17 @@
     ```sh
     sudo mysql -u root -p
     ```
+   Ensure local update is enabled by running the below in MySQL.
+   ```sql
+   SET GLOBAL local_infile=1;
+   ```
     The following only needs to be run once to set up the `dictionary` database:
-    ```sh
-    source dictionary.sql
+    ```sql
+    SOURCE dictionary.sql
     ```
+   Then you can `quit` MySQL.
     By default the SQL server will run on localhost port 3306.
+
 
 2. Start the dictionary server by entering the below command in a terminal:
     ```sh
