@@ -3,16 +3,18 @@
 - Uses MySQL database to store words and a simple definition (no examples)
 
 ## How to use the app
-Start the MySQL server 
+Start the local MySQL server in a terminal:
 ```sh
-sudo mysql -u root -p < dictionary.sql/code>
+sudo mysql -u root -p
+source dictionary.sql
 ```
 
-Start the dictionary server by entering the below command in terminal:
+Start the dictionary server by entering the below command in a terminal:
 ```sh
 java –jar DictionaryServer.jar <port> <dictionary-file>
 ```
-Start one or more client server/s by entering the below command in terminal:
+
+Start one or more client server/s by entering the below command in a terminal:
 ```sh
 java –jar DictionaryClient.jar <server-address> <server-port>
 ```

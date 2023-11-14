@@ -1,4 +1,5 @@
 package org.example;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -15,29 +16,12 @@ class DictGUI extends JFrame {//inheriting JFrame
     protected JButton buttonSearch = new JButton("Search Word or Phrase");
     protected JButton buttonEdit = new JButton("Edit Word Meaning");
 
-    protected JList<Word> listWords = new JList<>();
-    protected CustomListModel<Word> listModel;
-    protected java.util.List<Word> words = new ArrayList<>();
-
     public DictGUI() {
         initComponents();
         setSize(600, 480);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // todo way to add a word
-        // todo remove a word
-        // todo update meaning of a word
     }
-
-    public void setWords(ArrayList<Word> words) {
-        this.words = words;
-        // display the list of words
-        listModel = new CustomListModel<Word>(words);
-        listWords.setModel(listModel);
-        //listModel.addElement(new Person("John Doe"));
-        add(listWords);
-    }
-    // other methods
 
     protected void initComponents() {
         setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10));
@@ -68,10 +52,9 @@ class DictGUI extends JFrame {//inheriting JFrame
 
         add(panelButton);
 
-        //https://www.codejava.net/java-se/swing/java-swing-example-for-searching-and-sorting-a-collection-of-objects-using-jlist
 
         // this is where the dictionary part will be displayed
-        listWords.setPreferredSize(new Dimension(400, 360));
+        //listWords.setPreferredSize(new Dimension(400, 360));
 
         setVisible(true); // required?
 
@@ -93,7 +76,6 @@ class DictGUI extends JFrame {//inheriting JFrame
             return;
         }
 
-        // todo this part
 //        Collections.sort(words);
 //
 //        int foundIndex = Collections.binarySearch(words, new Word(word));
