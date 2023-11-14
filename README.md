@@ -1,6 +1,12 @@
 # Distributed Dictionary System
+Server-client multi threaded dictionary system. 
 
-- Uses MySQL database to store words and a single simple definition (no examples)
+- When the dictionary server is launched, the dictionary data is loaded from a file containing an initial list of words and their meanings. 
+- The server uses a MySQL database to store words along with a meaning for efficient word search. 
+- When words are added or removed, the database is updated to reflect the changes.
+- 
+
+
 
 ## How to run the app locally
 1. Set up MySQL server

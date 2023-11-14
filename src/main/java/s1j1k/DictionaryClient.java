@@ -4,15 +4,16 @@ import java.io.*;
 import java.net.*;
 
 public class DictionaryClient {
-    //private DictGUI gui;
+    private DictGUI gui;
     DictionaryClient() {
-        //this.gui = new DictGUI();
+        this.gui = new DictGUI();
     }
 
     public static void main(String args[]) throws IOException {
         DictionaryClient dictionaryClient = new DictionaryClient();
+        String serverAddress = new String(args[0]);
         int port = Integer.parseInt(args[1]);
-        Socket clientSocket = new Socket("localhost", port);
+        Socket clientSocket = new Socket(serverAddress, port);
         DataOutputStream os = null;
         DataInputStream is = null;
         try {
