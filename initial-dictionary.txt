@@ -1,4 +1,4 @@
-guru,a Hindu spiritual teacher
-love,an intense feeling of deep affection
-java,coffee
-channel,'a length of water wider than a strait, joining two larger areas of water, especially two seas'
+"guru","a Hindu spiritual teacher"
+"love","an intense feeling of deep affection"
+"java","coffee"
+"channel","a length of water wider than a strait, joining two larger areas of water, especially two seas"

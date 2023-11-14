@@ -54,7 +54,7 @@ public class DatabaseConnector {
 
   public void loadDataFromFile(String dataFile) {
     String sqlLoadDataFromFile = String.format(
-      "LOAD DATA LOCAL INFILE '%s' INTO TABLE dictionary",
+      "LOAD DATA LOCAL INFILE '%s' INTO TABLE dictionary FIELDS TERMINATED BY ',' ENCLOSED BY '\"'",
       dataFile
     );
     int result = executeUpdate(sqlLoadDataFromFile);
