@@ -1,5 +1,4 @@
 package s1j1k;
-
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import java.io.*;
 import java.io.IOException;

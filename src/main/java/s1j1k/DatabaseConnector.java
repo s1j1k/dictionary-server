@@ -4,29 +4,31 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-class DatabaseConnector {
+public class DatabaseConnector {
 
-  private final String connectionUrl =
-    "jdbc:mysql://localhost:3306/test?serverTimezone=UTC";
+  private static Logger LOGGER = LoggerFactory.getLogger(DatabaseConnector.class);
 
   public DatabaseConnector() {
 
   }
 
   public ResultSet executeStatement(String sqlStatement) {
-    try (
+    String connectionUrl = "jdbc:mysql://localhost:3306/dictionary?serverTimezone=UTC";
+    try {
       Connection conn = DriverManager.getConnection(
-        connectionUrl,
+              connectionUrl,
         "root",
         "rnt123"
       );
       PreparedStatement ps = conn.prepareStatement(sqlStatement);
       ResultSet rs = ps.executeQuery();
-    ) {
       return rs;
     } catch (SQLException e) {
       // handle the exception
+      LOGGER.error(String.valueOf(e));
     }
     return null;
   }
@@ -36,11 +38,6 @@ class DatabaseConnector {
       "LOAD DATA LOCAL INFILE '%s' INTO TABLE dictionary",
       dataFile
     );
-    executeStatement(sqlLoadDataFromFile);
+    ResultSet rs = executeStatement(sqlLoadDataFromFile);
   }
 }
-// handling the result set
-// while (rs.next()) {
-//             long id = rs.getLong("ID");
-//             String name = rs.getString("FIRST_NAME");
-//             String lastName = rs.getString("LAST_NAME");
