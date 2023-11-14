@@ -15,8 +15,8 @@ public class DatabaseConnector {
 
   }
 
-  public ResultSet executeStatement(String sqlStatement) {
-    String connectionUrl = "jdbc:mysql://localhost:3306/dictionary?serverTimezone=UTC";
+  public ResultSet executeQuery(String sqlStatement) {
+    String connectionUrl = "jdbc:mysql://localhost:3306/dictionary";
     try {
       Connection conn = DriverManager.getConnection(
               connectionUrl,
@@ -33,11 +33,30 @@ public class DatabaseConnector {
     return null;
   }
 
+  public int executeUpdate(String sqlStatement) {
+    String connectionUrl = "jdbc:mysql://localhost:3306/dictionary?allowLoadLocalInfile=true";
+    try {
+      Connection conn = DriverManager.getConnection(
+              connectionUrl,
+              "root",
+              "rnt123"
+      );
+      PreparedStatement ps = conn.prepareStatement(sqlStatement);
+      int rs = ps.executeUpdate();
+      return rs;
+    } catch (SQLException e) {
+      // handle the exception
+      LOGGER.error(String.valueOf(e));
+    }
+    return -1;
+  }
+
+
   public void loadDataFromFile(String dataFile) {
     String sqlLoadDataFromFile = String.format(
       "LOAD DATA LOCAL INFILE '%s' INTO TABLE dictionary",
       dataFile
     );
-    ResultSet rs = executeStatement(sqlLoadDataFromFile);
+    int result = executeUpdate(sqlLoadDataFromFile);
   }
 }
