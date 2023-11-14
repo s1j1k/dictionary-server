@@ -1,5 +1,4 @@
 package s1j1k;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -11,7 +10,9 @@ class DatabaseConnector {
   private final String connectionUrl =
     "jdbc:mysql://localhost:3306/test?serverTimezone=UTC";
 
-  public DatabaseConnector() {}
+  public DatabaseConnector() {
+
+  }
 
   public ResultSet executeStatement(String sqlStatement) {
     try (
@@ -35,6 +36,7 @@ class DatabaseConnector {
       "LOAD DATA LOCAL INFILE '%s' INTO TABLE dictionary",
       dataFile
     );
+    executeStatement(sqlLoadDataFromFile);
   }
 }
 // handling the result set
