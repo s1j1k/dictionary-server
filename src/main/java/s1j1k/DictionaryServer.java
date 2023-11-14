@@ -70,8 +70,8 @@ public class DictionaryServer {
     }
 
     public static void main(String args[]) throws IOException {
-        int port = Integer.parseInt(args[1]);
-        String initialDictionaryFile = args[2];
+        int port = Integer.parseInt(args[0]);
+        String initialDictionaryFile = new String(args[1]);
 
         // initialize dictionary server
         DictionaryServer dictionaryServer = new DictionaryServer(initialDictionaryFile);
@@ -95,7 +95,7 @@ public class DictionaryServer {
         }
 
         // pool is shutdown
-        threadPool.shutdown();
+        //threadPool.shutdown();
 
     }
 }
