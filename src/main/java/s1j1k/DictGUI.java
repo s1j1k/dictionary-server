@@ -1,4 +1,4 @@
-package org.example;
+package s1j1k;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
