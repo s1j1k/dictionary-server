@@ -6,7 +6,7 @@ import java.net.*;
 public class DictionaryClient {
     private DictGUI gui;
     DictionaryClient() {
-        this.gui = new DictGUI();
+        this.gui = new DictGUI(500,500);
     }
 
     public static void main(String args[]) throws IOException {
