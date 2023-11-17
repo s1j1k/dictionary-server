@@ -57,7 +57,7 @@ class DictGUI extends JFrame {
         add(titlePanel);
 
         // search field
-        JButton searchPanel = JPanel(new FlowLayout(FlowLayout.CENTER,10,5));
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.CENTER,10,5));
         searchPanel.setBackground(java.awt.Color.white);
         searchPanel.setBorder(null);
 
