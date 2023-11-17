@@ -7,11 +7,15 @@ import javax.swing.text.html.StyleSheet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.html.HTMLEditorKit;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 
 class DictGUI extends JFrame {
-    protected JButton buttonAdd = new JButton("Add New Word");
-    protected JButton buttonSearch = new JButton("Search Word or Phrase");
-    protected JButton buttonEdit = new JButton("Edit Word Meaning");
+    JButton buttonAdd = new JButton("Add New Word");
+    JButton buttonSearch = new JButton("Search Word or Phrase");
+    JButton buttonEdit = new JButton("Edit Word Meaning");
     StyleSheet styleSheet = new StyleSheet();
 
     public DictGUI() {
@@ -20,6 +24,17 @@ class DictGUI extends JFrame {
         setSize(700, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setVisible(true); // required?
+    }
+
+    private static void setLookAndFeel() {
+        try {
+            // Set System L&F
+            UIManager.setLookAndFeel(
+                    UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception exc) {
+            // ignore error
+        }
     }
 
     protected void initComponents() {
@@ -40,6 +55,29 @@ class DictGUI extends JFrame {
         title.setText("<h1>Erudite Dictionary</h1>");
         titlePanel.add(title);
         add(titlePanel);
+
+        // search field
+        JButton searchPanel = JPanel(new FlowLayout(FlowLayout.CENTER,10,5));
+        searchPanel.setBackground(java.awt.Color.white);
+        searchPanel.setBorder(null);
+
+        // add search icon
+        try {
+            BufferedImage searchImage = ImageIO.read(new File("./src/main/resources/search.png"));
+            ImageIcon searchImageIcon = new ImageIcon(searchImage);
+            searchImageIcon = new ImageIcon(searchImageIcon.getImage().getScaledInstance(25, 25,Image.SCALE_SMOOTH));
+            JLabel searchIcon = new JLabel(searchImageIcon);
+            searchPanel.add(searchIcon);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        JTextField searchField = new JTextField("Search",20);
+        searchField.setPreferredSize(new Dimension(200, 50));
+        searchPanel.add(searchField);
+        searchField.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        searchField.setSize(200,50);
+        searchField.setForeground(Color.decode("#c6c6c6"));
+        add(searchPanel);
 
         JPanel panelButton = new JPanel();
         panelButton.setLayout(new FlowLayout(FlowLayout.CENTER));
@@ -72,7 +110,7 @@ class DictGUI extends JFrame {
         // this is where the dictionary part will be displayed
         //listWords.setPreferredSize(new Dimension(400, 360));
 
-        setVisible(true); // required?
+
 
     }
 
@@ -104,6 +142,7 @@ class DictGUI extends JFrame {
     }
 
     public static void main(String args[]) {
+        setLookAndFeel();
         DictGUI gui = new DictGUI();
     }
 }
