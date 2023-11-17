@@ -13,15 +13,19 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 class DictGUI extends JFrame {
+    private int width;
+    private int height;
     JButton buttonAdd = new JButton("Add New Word");
     JButton buttonSearch = new JButton("Search Word or Phrase");
     JButton buttonEdit = new JButton("Edit Word Meaning");
     StyleSheet styleSheet = new StyleSheet();
 
-    public DictGUI() {
+    public DictGUI(int width, int height) {
         super("Erudite");
+        this.width = width;
+        this.height = height;
         initComponents();
-        setSize(700, 650);
+        setSize(this.width, this.height);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true); // required?
@@ -41,14 +45,16 @@ class DictGUI extends JFrame {
         setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10));
 
         // title
-        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER,100,5));
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER,50,5));
         JTextPane title = new JTextPane();
         title.setEditable(false);
         title.setFocusable(false);
         title.setOpaque(false);
+
         // add a HTMLEditorKit to the editor pane
         HTMLEditorKit kit = new HTMLEditorKit();
         title.setEditorKit(kit);
+
         // add styles to the HTML
         StyleSheet styleSheet = kit.getStyleSheet();
         styleSheet.addRule("h1 {color: #2b2a33; font-family: Segoe UI, Arial, Helvetica, sans-serif;}");
@@ -56,7 +62,7 @@ class DictGUI extends JFrame {
         titlePanel.add(title);
         add(titlePanel);
 
-        // search field
+        // create search field
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.CENTER,10,5));
         searchPanel.setBackground(java.awt.Color.white);
         searchPanel.setBorder(null);
@@ -71,8 +77,8 @@ class DictGUI extends JFrame {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        JTextField searchField = new JTextField("Search",20);
-        searchField.setPreferredSize(new Dimension(200, 50));
+        JTextField searchField = new JTextField("Search");
+        searchField.setPreferredSize(new Dimension(this.width - 150, 50));
         searchPanel.add(searchField);
         searchField.setBorder(javax.swing.BorderFactory.createEmptyBorder());
         searchField.setSize(200,50);
@@ -143,6 +149,6 @@ class DictGUI extends JFrame {
 
     public static void main(String args[]) {
         setLookAndFeel();
-        DictGUI gui = new DictGUI();
+        DictGUI gui = new DictGUI(500,500);
     }
 }
