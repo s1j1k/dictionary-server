@@ -24,17 +24,7 @@ class DictGUI extends JFrame {
         super("Erudite");
         this.width = width;
         this.height = height;
-        // make a transparent background
-
-        //setUndecorated(true);
-        //setBackground(new Color(0,0,0,170));
-        // todo change opacity
-
-        JDesktopPane dtp = new JDesktopPane();
-        dtp.setBackground(new Color(0,0,0,170));
-        dtp.setOpacity(0.8f);
-
-        initComponents();
+        //initComponents();
         setSize(this.width, this.height);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
