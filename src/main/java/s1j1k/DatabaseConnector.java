@@ -18,6 +18,7 @@ public class DatabaseConnector {
   public ResultSet executeQuery(String sqlStatement) {
     String connectionUrl = "jdbc:mysql://localhost:3306/dictionary";
     try {
+      // todo hide user & password
       Connection conn = DriverManager.getConnection(
               connectionUrl,
         "root",
@@ -49,14 +50,5 @@ public class DatabaseConnector {
       LOGGER.error(String.valueOf(e));
     }
     return -1;
-  }
-
-
-  public void loadDataFromFile(String dataFile) {
-    String sqlLoadDataFromFile = String.format(
-      "LOAD DATA LOCAL INFILE '%s' INTO TABLE dictionary FIELDS TERMINATED BY ',' ENCLOSED BY '\"'",
-      dataFile
-    );
-    int result = executeUpdate(sqlLoadDataFromFile);
   }
 }
