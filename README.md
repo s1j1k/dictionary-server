@@ -14,21 +14,24 @@ Server-client multi threaded dictionary system.
     ```sh
     sudo mysql -u root -p
     ```
-   Ensure local update is enabled by running the below in MySQL.
-   ```sql
-   SET GLOBAL local_infile=1;
-   ```
+   
+    Ensure local update is enabled by running the below in MySQL. 
+    This allows the initial dictionary data to be read from initial-dictionary.txt.
+    ```sql
+    SET GLOBAL local_infile=1;
+    ```
+    Quit MySQL and start a new session with the MySql client (e.g. your IDE) setting: `allowLoadLocalInfile=true`.
+
     The following only needs to be run once to set up the `dictionary` database:
     ```sql
     SOURCE dictionary.sql
     ```
-   Then you can `quit` MySQL.
-    By default the SQL server will run on localhost port 3306.
+   Then you can `quit` MySQL. By default the SQL server will run on localhost port 3306.
 
 
 2. Start the dictionary server by entering the below command in a terminal:
     ```sh
-    java –jar DictionaryServer.jar <port> <dictionary-file>
+    java –jar DictionaryServer.jar <port>
     ```
 
 3. Start one or more client server/s by entering the below command in a terminal:

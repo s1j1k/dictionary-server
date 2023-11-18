@@ -35,7 +35,7 @@ public class DatabaseConnector {
   }
 
   public int executeUpdate(String sqlStatement) {
-    String connectionUrl = "jdbc:mysql://localhost:3306/dictionary?allowLoadLocalInfile=true";
+    String connectionUrl = "jdbc:mysql://localhost:3306/dictionary?";
     try {
       Connection conn = DriverManager.getConnection(
               connectionUrl,
