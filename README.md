@@ -9,19 +9,17 @@ Server-client multi threaded dictionary system.
 
 
 ## How to run the app locally
-1. Set up MySQL server
+1. Set up MySQL server and initialize the dictionary database.
     Start the local MySQL server in a terminal:
     ```sh
     sudo mysql -u root -p
     ```
-   
-    Ensure local update is enabled by running the below in MySQL. 
-    This allows the initial dictionary data to be read from initial-dictionary.txt.
+    Ensure local update is enabled by running the below in MySQL.
     ```sql
     SET GLOBAL local_infile=1;
     ```
+    This allows the initial dictionary data to be read from initial-dictionary.txt.
     Quit MySQL and start a new session with the MySql client (e.g. your IDE) setting: `allowLoadLocalInfile=true`.
-
     The following only needs to be run once to set up the `dictionary` database:
     ```sql
     SOURCE dictionary.sql
