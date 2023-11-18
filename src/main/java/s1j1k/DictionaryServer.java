@@ -6,6 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 
+// todo server gui (?)
 //class DictionaryMonitor {}
 
 class ClientHandler implements Runnable {
@@ -32,6 +33,9 @@ class ClientHandler implements Runnable {
             request = is.readUTF();
             System.out.println("Server received request: " + request);
             // handle the particular request here
+            if (request.equals("INIT")) {
+                // send a list of words to be displayed
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
@@ -57,7 +61,7 @@ class ClientHandler implements Runnable {
 
 public class DictionaryServer {
 
-    DatabaseConnector databaseConnector;
+    private DatabaseConnector databaseConnector;
 
     // Maximum number of threads in the thread pool
     static final int MAX_TH = 10;
@@ -65,7 +69,8 @@ public class DictionaryServer {
     public DictionaryServer(String intialDictionaryFile) {
         // load initial dictionary data from txt file using SQL statements
         databaseConnector = new DatabaseConnector();
-        databaseConnector.loadDataFromFile(intialDictionaryFile);
+        databaseConnector.initialiseDatabase(intialDictionaryFile);
+        // todo read back the data in the database
     }
 
     public static void main(String args[]) throws IOException {
@@ -91,6 +96,7 @@ public class DictionaryServer {
             // create a thread to handle this client
             Runnable task = new ClientHandler(clientSocket, dictionaryServer);
             threadPool.execute(task);
+            // todo make an option to close the application and exit this loop
         }
 
         // pool is shutdown

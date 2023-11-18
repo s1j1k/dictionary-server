@@ -23,6 +23,8 @@ public class DictionaryClient {
             os.writeUTF("INIT");
             System.out.println("Client sent request: INIT");
             // read the response from the server
+            // todo need to receive a list of words from Server
+            // note how do you know that an input stream will be available??
             String response = is.readUTF();
             System.out.println("Client received response: " + response);
             // display the required data here
