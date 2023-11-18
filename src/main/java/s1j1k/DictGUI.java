@@ -22,9 +22,10 @@ class DictGUI extends JFrame {
 
     public DictGUI(int width, int height) {
         super("Erudite");
+        setLookAndFeel();
         this.width = width;
         this.height = height;
-        //initComponents();
+        initComponents();
         setSize(this.width, this.height);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -63,11 +64,13 @@ class DictGUI extends JFrame {
         add(titlePanel);
 
         // create search field
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.CENTER,10,5));
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.CENTER,20,5));
         searchPanel.setBackground(java.awt.Color.white);
         searchPanel.setBorder(null);
 
         // add search icon
+        // todo add search button action to the icon
+        // todo add search action to the enter key
         try {
             BufferedImage searchImage = ImageIO.read(new File("./src/main/resources/search.png"));
             ImageIcon searchImageIcon = new ImageIcon(searchImage);
@@ -83,34 +86,37 @@ class DictGUI extends JFrame {
         searchField.setBorder(javax.swing.BorderFactory.createEmptyBorder());
         searchField.setSize(200,50);
         searchField.setForeground(Color.decode("#c6c6c6"));
+        // increase font size
+        Font font1 = new Font("SansSerif", Font.PLAIN, 15);
+        searchField.setFont(font1);
         add(searchPanel);
 
         JPanel panelButton = new JPanel();
         panelButton.setLayout(new FlowLayout(FlowLayout.CENTER));
 
-        buttonAdd.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                addWord();
-            }
-        });
-
-        buttonEdit.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                editMeaning();
-            }
-        });
-
-        buttonSearch.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                searchMeaning();
-            }
-        });
-
-        panelButton.add(buttonAdd);
-        panelButton.add(buttonSearch);
-        panelButton.add(buttonEdit);
-
-        add(panelButton);
+//        buttonAdd.addActionListener(new ActionListener() {
+//            public void actionPerformed(ActionEvent evt) {
+//                addWord();
+//            }
+//        });
+//
+//        buttonEdit.addActionListener(new ActionListener() {
+//            public void actionPerformed(ActionEvent evt) {
+//                editMeaning();
+//            }
+//        });
+//
+//        buttonSearch.addActionListener(new ActionListener() {
+//            public void actionPerformed(ActionEvent evt) {
+//                searchMeaning();
+//            }
+//        });
+//
+//        panelButton.add(buttonAdd);
+//        panelButton.add(buttonSearch);
+//        panelButton.add(buttonEdit);
+//
+//        add(panelButton);
 
 
         // this is where the dictionary part will be displayed
@@ -121,20 +127,22 @@ class DictGUI extends JFrame {
     }
 
 
-    private void editMeaning() {
+    private void editMeaning(String word, String meaning) {
 
     }
 
-    private void addWord() {
+    private void addWord(String word, String meaning) {
 
     }
 
     private void searchMeaning() {
-        String word = JOptionPane.showInputDialog(this, "Enter word or phrase to search for:");
 
-        if (word == null) {
-            return;
-        }
+    }
+//        String word = JOptionPane.showInputDialog(this, "Enter word or phrase to search for:");
+//
+//        if (word == null) {
+//            return;
+//        }
 
 //        Collections.sort(words);
 //
@@ -145,10 +153,8 @@ class DictGUI extends JFrame {
 //        } else {
 //            JOptionPane.showMessageDialog(this, "Could not find the word/phrase " + word);
 //        }
-    }
-
-    public static void main(String args[]) {
-        setLookAndFeel();
+//    }
+    public static void main(String arguments[]) {
         DictGUI gui = new DictGUI(500,500);
     }
 }
