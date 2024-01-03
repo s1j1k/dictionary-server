@@ -39,6 +39,7 @@ class ClientHandler implements Runnable {
                 // todo make asynchronous (blocking) at the database connector side (?)
                 String wordList = dictionaryServer.databaseConnector.getListOfWords();
                 os.writeUTF(wordList);
+                System.out.println("Server sent words list: " + wordList);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
