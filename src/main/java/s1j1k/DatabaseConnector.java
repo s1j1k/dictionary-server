@@ -51,19 +51,14 @@ public class DatabaseConnector {
             "FROM Words\n" +
             "INNER JOIN Meanings on Words.WordId = Meanings.WordId;");
 
-    String wordList = null;
+    String wordList = "";
 
     while(rs.next()) {
       String word = rs.getString("Word");
       String partOfSpeech = rs.getString("PartOfSpeech");
       String meaning = rs.getString("Meaning");
       String sentence = rs.getString("Sentence");
-      if (wordList == null) {
-        wordList = String.format("%s,%s,%s,%s\n", word, partOfSpeech, meaning, sentence);
-      } else {
-        wordList.concat(String.format("%s,%s,%s,%s\n", word, partOfSpeech, meaning, sentence));
-      }
-
+      wordList += String.format("%s,%s,%s,%s\n", word, partOfSpeech, meaning, sentence);
     }
 
     return wordList;

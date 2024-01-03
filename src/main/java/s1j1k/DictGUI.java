@@ -94,6 +94,9 @@ class DictGUI extends JFrame {
         JPanel panelButton = new JPanel();
         panelButton.setLayout(new FlowLayout(FlowLayout.CENTER));
 
+        // todo add a scrollable panel with words in it
+
+
 //        buttonAdd.addActionListener(new ActionListener() {
 //            public void actionPerformed(ActionEvent evt) {
 //                addWord();
