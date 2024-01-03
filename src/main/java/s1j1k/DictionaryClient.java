@@ -27,7 +27,7 @@ public class DictionaryClient {
             // note how do you know that an input stream will be available??
             String response = is.readUTF();
             System.out.println("Client received response: " + response);
-            // display the required data here
+            // todo display the required data here
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {

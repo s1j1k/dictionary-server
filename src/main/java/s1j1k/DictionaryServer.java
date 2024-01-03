@@ -4,6 +4,7 @@ import java.io.*;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 
 // todo server gui (?)
@@ -34,9 +35,14 @@ class ClientHandler implements Runnable {
             System.out.println("Server received request: " + request);
             // handle the particular request here
             if (request.equals("INIT")) {
-                // send a list of words to be displayed
+                // fixme is this reference of the OK with multi threading?
+                // todo make asynchronous (blocking) at the database connector side (?)
+                String wordList = dictionaryServer.databaseConnector.getListOfWords();
+                os.writeUTF(wordList);
             }
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
             // When done, just close the connection and exit
@@ -61,7 +67,7 @@ class ClientHandler implements Runnable {
 
 public class DictionaryServer {
 
-    private DatabaseConnector databaseConnector;
+    DatabaseConnector databaseConnector;
 
     // Maximum number of threads in the thread pool
     static final int MAX_TH = 10;
@@ -69,7 +75,6 @@ public class DictionaryServer {
     public DictionaryServer(String intialDictionaryFile) {
         // load initial dictionary data from txt file using SQL statements
         databaseConnector = new DatabaseConnector();
-        databaseConnector.initialiseDatabase(intialDictionaryFile);
         // todo read back the data in the database
     }
 
