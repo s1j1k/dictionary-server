@@ -73,13 +73,13 @@ public class DictionaryServer {
     // Maximum number of threads in the thread pool
     static final int MAX_TH = 10;
 
-    public DictionaryServer(String intialDictionaryFile) {
+    public DictionaryServer(String intialDictionaryFile) throws SQLException, IOException {
         // load initial dictionary data from txt file using SQL statements
         databaseConnector = new DatabaseConnector();
         // todo read back the data in the database
     }
 
-    public static void main(String args[]) throws IOException {
+    public static void main(String args[]) throws IOException, SQLException {
         int port = Integer.parseInt(args[0]);
         String initialDictionaryFile = new String(args[1]);
 
