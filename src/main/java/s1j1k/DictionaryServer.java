@@ -75,15 +75,18 @@ public class DictionaryServer {
 
     public DictionaryServer(String intialDictionaryFile) throws SQLException, IOException {
         // load initial dictionary data from txt file using SQL statements
-        databaseConnector = new DatabaseConnector();
+        // TODO do something with the file ?? or should that be already done?
+        databaseConnector = new DatabaseConnector(intialDictionaryFile);
         // todo read back the data in the database
     }
 
     public static void main(String args[]) throws IOException, SQLException {
+        // TODO proper error handling for missing arguments here
         int port = Integer.parseInt(args[0]);
-        String initialDictionaryFile = new String(args[1]);
+        String initialDictionaryFile = args[1];
 
         // initialize dictionary server
+        // FIXME does it even make sense to instantiate oneself during main fil execution?
         DictionaryServer dictionaryServer = new DictionaryServer(initialDictionaryFile);
 
         // Register service on the given port
@@ -100,6 +103,7 @@ public class DictionaryServer {
             Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
             System.out.println("Accepted a connection.");
             // create a thread to handle this client
+            // FIXME should we just hand in the database connector?
             Runnable task = new ClientHandler(clientSocket, dictionaryServer);
             threadPool.execute(task);
             // todo make an option to close the application and exit this loop
