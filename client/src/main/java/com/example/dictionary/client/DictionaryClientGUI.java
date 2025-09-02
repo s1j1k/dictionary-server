@@ -31,6 +31,14 @@ public class DictionaryClientGUI extends JFrame {
     // Connection status
     private boolean isConnected = false;
 
+    // Connection to server
+    private ClientConnection clientConnection;
+
+    // Setter for client connection
+    public void setClientConnection(ClientConnection connection) {
+        this.clientConnection = connection;
+    }
+    
     public DictionaryClientGUI() {
         initializeGUI();
     }
@@ -230,6 +238,18 @@ public class DictionaryClientGUI extends JFrame {
         }
 
         // TODO: Implement socket communication to server
+        // clientConnection.sendMessage("Search:")
+        // TODO format request as JSON {request: "search", word: "word to be searched"}
+        // FIXME use an enum to specify what kinds of requests can be done in Request class (?)
+        // FIXME specify the JSON schema common to both client/server ?
+        // FIXME share teh client request class structure with the server so it knows what to expect?
+        Request request = new Request("search", word);
+
+        // FIXME handle JSON conversion in the clientConnection file
+        Gson gson = new Gson();
+        String json = gson.toJson(request); // serialize
+        clientConnect.sendMessage(request.)
+
         displayResult("TODO: Implement search functionality for word: " + word);
     }
 
@@ -324,8 +344,10 @@ public class DictionaryClientGUI extends JFrame {
      * You should modify this to include command line argument parsing
      */
     public static void main(String[] args) {
-        // TODO: Parse command line arguments
+        // Parse command line arguments
         // Expected: java DictionaryClient.jar <server-address> <server-port> <sleep-duration>
+        String serverAddress = new String(args[0]);
+        int port = Integer.parseInt(args[1]);
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -340,7 +362,18 @@ public class DictionaryClientGUI extends JFrame {
                 gui.setVisible(true);
 
                 // TODO: Initialize socket connection here
-                // gui.setConnectionStatus(true); // Set this when actually connected
+                try {
+                    ClientConnection clientConnection = new ClientConnection(serverAddress, port);
+                    gui.setClientConnection(clientConnection);
+                    // FIXME be able to check if client is connected (?)
+                    gui.setConnectionStatus(true); // Set this when actually connected
+                } catch {
+                    // FIXME use JOPTIONPANE or something else 
+                    System.out.println(
+                        "FAILED to connect to server"
+                    );
+                }
+                
             }
         });
     }

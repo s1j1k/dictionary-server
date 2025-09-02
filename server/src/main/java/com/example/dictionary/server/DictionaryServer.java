@@ -41,6 +41,11 @@ class ClientHandler implements Runnable {
                 os.writeUTF(wordList);
                 System.out.println("Server sent words list: " + wordList);
             }
+
+            // TODO search word meaning
+            if (request.s)
+
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (SQLException e) {

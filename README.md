@@ -9,7 +9,8 @@ Server-client multi threaded dictionary system.
 
 
 ## How to run the app locally
-1. Set up MySQL server and initialize the dictionary database.
+Requires: MySQL Server installed, Java SDK installed
+1. Install MySQL server and initialize the dictionary database.
     Start the local MySQL server in a terminal:
     ```sh
     sudo mysql -u root -p

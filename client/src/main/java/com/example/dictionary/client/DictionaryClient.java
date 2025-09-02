@@ -1,5 +1,3 @@
-package s1j1k;
-
 import java.io.*;
 import java.net.*;
 

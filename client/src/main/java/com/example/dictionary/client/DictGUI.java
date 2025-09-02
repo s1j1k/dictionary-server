@@ -1,5 +1,3 @@
-package s1j1k;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -72,7 +70,8 @@ class DictGUI extends JFrame {
         // todo add search button action to the icon
         // todo add search action to the enter key
         try {
-            BufferedImage searchImage = ImageIO.read(new File("./src/main/resources/search.png"));
+            // FIXME file location
+            BufferedImage searchImage = ImageIO.read(new File("./search.png"));
             ImageIcon searchImageIcon = new ImageIcon(searchImage);
             searchImageIcon = new ImageIcon(searchImageIcon.getImage().getScaledInstance(25, 25,Image.SCALE_SMOOTH));
             JLabel searchIcon = new JLabel(searchImageIcon);
