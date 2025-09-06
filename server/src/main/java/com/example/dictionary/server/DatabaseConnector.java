@@ -7,25 +7,20 @@ import java.sql.*;
 
 public class DatabaseConnector {
   private String jdbcUrl = "jdbc:sqlite:dictionary.db";
-  private Connection conn;
 
   // FIXME turned to public to allow testing
   public Connection getConnection() throws SQLException {
     return DriverManager.getConnection(jdbcUrl);
   }
 
-  // TODO This needs to run when thread is over
-  public void releaseConnection() throws SQLException {
-    this.conn.close();
-  }
-
   // Constructor
   // FIXME db initialisation should happen before threads are handled
   public DatabaseConnector(String intialDictionaryFile) throws IOException, SQLException {
 
-    // Initialize connection
-    // FIXME should this be an instance variable or a new connection each time?
-    this.conn = DriverManager.getConnection(jdbcUrl);
+    // Initialize connection to test SQLite working
+    try (Connection conn = getConnection()) {
+      System.out.println("Connection to dictionary.db established!");
+    }
 
     // Create tables if they don't exist
     createTables();
@@ -63,34 +58,100 @@ public class DatabaseConnector {
 
   private boolean isEmpty(String tableName) throws SQLException {
     String sql = "SELECT COUNT(*) FROM " + tableName;
-    try (Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery(sql)) {
-      return rs.getInt(1) == 0;
+    try (Connection conn = getConnection()) {
+      try (Statement stmt = conn.createStatement();
+          ResultSet rs = stmt.executeQuery(sql)) {
+        return rs.getInt(1) == 0;
+      }
     }
+
   }
 
-  private void loadFromFile(String fileName) throws IOException, SQLException {
+  private void loadFromFile(String fileName) throws IOException {
     try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+
+      // Skip the header line
+      String header = reader.readLine();
+
       // this.conn.setAutoCommit(false); // Start transaction
       String line;
       int WordId = 1;
       // Insert words into dictionary one at a time
       while ((line = reader.readLine()) != null) {
         // Process one line
-        String[] data = line.split("\t");
+        String[] data = line.split(",");
 
-        // Prepare SQL statements using the content of the line
-        String insertWord = String.format("INSERT INTO Words (WordId, Word) VALUES (%d, %s)", WordId, data[0]);
-        String insertMeaning = String.format(
-            "INSERT INTO Meanings (WordId, PartOfSpeech, Meaning, Sentence) VALUES (%d, %s, %s, %s)", WordId, data[1],
-            data[2], data[3]);
+        // FIXME verify the line contains required data
+        String word;
+        String partOfSpeech;
+        String meaning;
+        String sentence = ""; // Not every word has an example sentence
 
-        // FIXME use transaction for this
-        // FIXME use batch for this
-        executeUpdate(insertWord);
-        executeUpdate(insertMeaning);
+        if (data.length < 3) {
+          throw new IOException("CSV data is incomplete, failed to process line: " + line);
+        }
 
-        WordId += 1;
+        word = data[0];
+        partOfSpeech = data[1];
+        meaning = data[2];
+
+        if (data.length == 4) {
+          sentence = data[3];
+        }
+
+        // Check if Word is already in Words DB
+
+        // Insert into Words and get the generated WordId
+        try (Connection conn = getConnection()) {
+          // Check if the word already exists
+          String selectWord = "SELECT WordId FROM Words WHERE Word = ?";
+          try (PreparedStatement checkStmt = conn.prepareStatement(selectWord)) {
+            checkStmt.setString(1, word);
+
+            try (ResultSet rs = checkStmt.executeQuery()) {
+              int wordId;
+              if (rs.next()) {
+                // Word already exists → reuse its WordId
+                wordId = rs.getInt("WordId");
+              } else {
+                // Word does not exist → insert it
+                String insertWord = "INSERT INTO Words (Word) VALUES (?)";
+                try (
+                    PreparedStatement insertStmt = conn.prepareStatement(insertWord, Statement.RETURN_GENERATED_KEYS)) {
+                  insertStmt.setString(1, word);
+                  insertStmt.executeUpdate();
+
+                  try (ResultSet genKeys = insertStmt.getGeneratedKeys()) {
+                    if (genKeys.next()) {
+                      wordId = genKeys.getInt(1);
+                    } else {
+                      throw new SQLException("Inserting word failed, no ID returned.");
+                    }
+                  }
+                }
+              }
+
+              // Insert meaning for this word
+              String insertMeaning = "INSERT INTO Meanings (WordId, PartOfSpeech, Meaning, Sentence) VALUES (?, ?, ?, ?)";
+              try (PreparedStatement insertStmt2 = conn.prepareStatement(insertMeaning)) {
+                insertStmt2.setInt(1, wordId);
+                insertStmt2.setString(2, partOfSpeech);
+                insertStmt2.setString(3, meaning);
+                insertStmt2.setString(4, sentence);
+                insertStmt2.executeUpdate();
+              }
+            }
+          } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+
+        } catch (SQLException e1) {
+          // TODO Auto-generated catch block
+          e1.printStackTrace();
+        }
+
+        // FIXME don't initialize the server if this fails
       }
 
     }
@@ -122,17 +183,17 @@ public class DatabaseConnector {
     // System.out.println("Data imported successfully!");
   }
 
+  // FIXME woeks for things without params to insert, simple statements
   public int executeUpdate(String sqlStatement) {
-    // TODO update function if it needs pararms or not
-    // TODO try with resources or use finally
-    // TODO reduce concurrerncy ? or will SQL handle it automatically
     try (Connection conn = getConnection()) {
-      PreparedStatement ps = conn.prepareStatement(sqlStatement);
-      int rs = ps.executeUpdate();
-      return rs;
+      try (PreparedStatement ps = conn.prepareStatement(sqlStatement)) {
+        int rs = ps.executeUpdate();
+        return rs;
+      }
     } catch (SQLException e) {
-      System.out.println("ERROR: updating database failed!");
-    } 
+      System.out.println("ERROR: updating database failed! Statement: " + sqlStatement);
+      e.printStackTrace();
+    }
     return -1;
   }
 
@@ -153,6 +214,7 @@ public class DatabaseConnector {
                                                                                                                                                               // query
 
       // Process the ResultSet
+      // FIXME do this more efficiently and use a class for Words
       while (rs.next()) {
         String word = rs.getString("Word");
         String partOfSpeech = rs.getString("PartOfSpeech");
@@ -187,6 +249,38 @@ public class DatabaseConnector {
     }
 
     return wordList.toString();
+  }
+
+  public String searchWord(String wordToSearch) {
+    try (Connection conn = getConnection()) {
+      // Search for a word and return the meaning/s
+
+      // Get the WordId
+      int wordId = -1;
+      try (PreparedStatement findWordId = conn.prepareStatement(
+          "SELECT WordId FROM Words WHERE Word = ?")) {
+
+        findWordId.setString(1, wordToSearch);
+
+        try (ResultSet rs = findWordId.executeQuery()) {
+          if (rs.next()) {
+            // Word exists → get its ID
+            wordId = rs.getInt("WordId");
+          }
+        }
+      }
+
+      // Search for the meanings of the word
+      String insertMeaning = "SELECT PartOfSpeech Meanings.Meaning Meanings.Sentence FROM FROM Words INNER JOIN Meanings on Words.WordId = Meanings.WordId;";
+      try (PreparedStatement insertStmt2 = conn.prepareStatement(insertMeaning)) {
+        insertStmt2.setInt(1, wordId);
+        insertStmt2.executeUpdate();
+      }
+
+    } catch (SQLException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
   }
 
 }

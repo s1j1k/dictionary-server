@@ -48,6 +48,7 @@ class ClientHandler implements Runnable {
             switch (request.getCommand()) {
                 case "search":
                     // TODO search in the DB and return the meanings
+                    dictionaryServer.databaseConnector.searchWord(request.getWord());
 
                 default:
                     // FIXME raise an exception
@@ -105,7 +106,7 @@ public class DictionaryServer {
         // load initial dictionary data from txt file using SQL statements
         // TODO do something with the file ?? or should that be already done?
         // FIXME can we reuse it across multiple threads?
-        databaseConnector = new DatabaseConnector(intialDictionaryFile);
+        this.databaseConnector = new DatabaseConnector(intialDictionaryFile);
         // todo read back the data in the database
     }
 
@@ -121,6 +122,13 @@ public class DictionaryServer {
             // FIXME does it even make sense to instantiate oneself during main fil
             // execution?
             DictionaryServer dictionaryServer = new DictionaryServer(initialDictionaryFile);
+
+            // FIXME remove - for debugging
+            // TODO convert to like a test
+            // Print the word list
+            // TODO proper logging
+            System.out.println("Dictionary server initialized!");
+            System.out.println("Initial list of words:\n" + dictionaryServer.databaseConnector.getListOfWords());
 
             // Register service on the given port
             serverSocket = new ServerSocket(port);
