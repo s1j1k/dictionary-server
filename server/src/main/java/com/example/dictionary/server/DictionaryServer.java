@@ -1,4 +1,5 @@
-package s1j1k;
+package com.example.dictionary.server;
+
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import java.io.*;
 import java.io.IOException;
@@ -7,12 +8,18 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 
-// todo server gui (?)
+import com.example.dictionary.common.Request;
+
+import com.google.gson.Gson;
+
+// TODO server gui
 //class DictionaryMonitor {}
 
 class ClientHandler implements Runnable {
     private Socket clientSocket;
     private DictionaryServer dictionaryServer;
+
+    Gson gson = new Gson();
 
     public ClientHandler(Socket clientSocket, DictionaryServer dictionaryServer) {
         this.clientSocket = clientSocket;
@@ -22,8 +29,8 @@ class ClientHandler implements Runnable {
     public void run() throws RuntimeException {
         DataOutputStream dataOut = null;
         OutputStream streamOut = null;
-        String request = null;
-        String response = null;
+        // String request = null;
+        // String response = null;
 
         // Get a communication stream associated with the socket
         DataInputStream is = null;
@@ -31,24 +38,40 @@ class ClientHandler implements Runnable {
         try {
             is = new DataInputStream(clientSocket.getInputStream());
             os = new DataOutputStream(clientSocket.getOutputStream());
-            request = is.readUTF();
-            System.out.println("Server received request: " + request);
-            // handle the particular request here
-            if (request.equals("INIT")) {
-                // fixme is this reference of the OK with multi threading?
-                // todo make asynchronous (blocking) at the database connector side (?)
-                String wordList = dictionaryServer.databaseConnector.getListOfWords();
-                os.writeUTF(wordList);
-                System.out.println("Server sent words list: " + wordList);
+            String json = is.readUTF();
+            System.out.println("Server received request: " + json);
+
+            Request request = gson.fromJson(json, Request.class);
+
+            // Handle search type request
+            // FIXME should it be command or like type (?)
+            switch (request.getCommand()) {
+                case "search":
+                    // TODO search in the DB and return the meanings
+
+                default:
+                    // FIXME raise an exception
+                    // TODO return an error
+                    // FIXME make this more detailed
+                    System.out.println("Incorrect request format");
             }
 
-            // TODO search word meaning
-            if (request.s)
+            // FIXME handle as Request objects
 
+            // handle the particular request here
+            // NOTE you are not required to produce a list of words for scrolling
+            // TODO add this optional feature at the end
+            // if (request.equals("INIT")) {
+            // // fixme is this reference of the OK with multi threading?
+            // // todo make asynchronous (blocking) at the database connector side (?)
+            // String wordList = dictionaryServer.databaseConnector.getListOfWords();
+            // os.writeUTF(wordList);
+            // System.out.println("Server sent words list: " + wordList);
+            // }
+
+            // TODO search word meaning
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
             // When done, just close the connection and exit
@@ -81,41 +104,59 @@ public class DictionaryServer {
     public DictionaryServer(String intialDictionaryFile) throws SQLException, IOException {
         // load initial dictionary data from txt file using SQL statements
         // TODO do something with the file ?? or should that be already done?
+        // FIXME can we reuse it across multiple threads?
         databaseConnector = new DatabaseConnector(intialDictionaryFile);
         // todo read back the data in the database
     }
 
     public static void main(String args[]) throws IOException, SQLException {
-        // TODO proper error handling for missing arguments here
-        int port = Integer.parseInt(args[0]);
-        String initialDictionaryFile = args[1];
 
-        // initialize dictionary server
-        // FIXME does it even make sense to instantiate oneself during main fil execution?
-        DictionaryServer dictionaryServer = new DictionaryServer(initialDictionaryFile);
+        ServerSocket serverSocket = null;
+        try {
+            // TODO proper error handling for missing arguments here
+            int port = Integer.parseInt(args[0]);
+            String initialDictionaryFile = args[1];
 
-        // Register service on the given port
-        ServerSocket serverSocket = new ServerSocket(port);
+            // initialize dictionary server
+            // FIXME does it even make sense to instantiate oneself during main fil
+            // execution?
+            DictionaryServer dictionaryServer = new DictionaryServer(initialDictionaryFile);
 
-        // creating a thread pool with MAX_TH number of threads
-        ExecutorService threadPool = newFixedThreadPool(MAX_TH);
+            // Register service on the given port
+            serverSocket = new ServerSocket(port);
 
-        System.out.println("Waiting for client connections...");
+            // creating a thread pool with MAX_TH number of threads
+            ExecutorService threadPool = newFixedThreadPool(MAX_TH);
 
-        // accept multiple connections and use multiple threads
-        while (true) {
-            // create a thread and process any input clients requests?
-            Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
-            System.out.println("Accepted a connection.");
-            // create a thread to handle this client
-            // FIXME should we just hand in the database connector?
-            Runnable task = new ClientHandler(clientSocket, dictionaryServer);
-            threadPool.execute(task);
-            // todo make an option to close the application and exit this loop
+            System.out.println("Waiting for client connections...");
+
+            // accept multiple connections and use multiple threads
+            while (true) {
+                // create a thread and process any input clients requests?
+                Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
+                System.out.println("Accepted a connection.");
+                // create a thread to handle this client
+                // FIXME should we just hand in the database connector?
+                Runnable task = new ClientHandler(clientSocket, dictionaryServer);
+                threadPool.execute(task);
+                // todo make an option to close the application and exit this loop
+            }
+
+            // pool is shutdown
+            // threadPool.shutdown();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                if (serverSocket != null) {
+                    serverSocket.close();
+                }
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
-
-        // pool is shutdown
-        //threadPool.shutdown();
 
     }
 }

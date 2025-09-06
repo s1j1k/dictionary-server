@@ -1,70 +1,138 @@
-package s1j1k;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+package com.example.dictionary.server;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.sql.*;
-import java.util.Properties;
 
 public class DatabaseConnector {
-  private String url;
-  private String username;
-  private String password;
-  private String intialDictionaryFile;
-
+  private String jdbcUrl = "jdbc:sqlite:dictionary.db";
+  private Connection conn;
 
   // FIXME turned to public to allow testing
   public Connection getConnection() throws SQLException {
-    try {
-      //Registering the Driver
-//      DriverManager.registerDriver(new com.mysql.cj.jdbc.Driver());
-      return DriverManager.getConnection(this.url, this.username, this.password);
-    } catch (SQLException e) {
-      // TODO use a logger instead
-      System.err.println("ERROR: Failed to establish database connection");
+    return DriverManager.getConnection(jdbcUrl);
+  }
 
-      throw e;
+  // TODO This needs to run when thread is over
+  public void releaseConnection() throws SQLException {
+    this.conn.close();
+  }
+
+  // Constructor
+  // FIXME db initialisation should happen before threads are handled
+  public DatabaseConnector(String intialDictionaryFile) throws IOException, SQLException {
+
+    // Initialize connection
+    // FIXME should this be an instance variable or a new connection each time?
+    this.conn = DriverManager.getConnection(jdbcUrl);
+
+    // Create tables if they don't exist
+    createTables();
+
+    // Optionally load initial data if Words table is empty
+    if (isEmpty("Words")) {
+      loadFromFile(intialDictionaryFile);
+    }
+
+    // Create dictionary.db with SQLite if not already existing
+
+    // TODO check if database is populated already, if not initialize the database
+
+  }
+
+  private void createTables() {
+    // TODO prefill database if it's not already filled
+    String createWordsTable = "CREATE TABLE IF NOT EXISTS Words (" +
+        "WordId INTEGER PRIMARY KEY AUTOINCREMENT," +
+        "Word TEXT NOT NULL UNIQUE);";
+
+    String createMeaningsTable = "CREATE TABLE IF NOT EXISTS Meanings (" +
+        "MeaningId INTEGER PRIMARY KEY AUTOINCREMENT," +
+        "WordId INTEGER," +
+        "PartOfSpeech TEXT CHECK(PartOfSpeech IN ('noun','pronoun','verb','adjective','adverb','preposition','conjunction','interjection')),"
+        +
+        "Meaning TEXT NOT NULL," +
+        "Sentence TEXT," +
+        "FOREIGN KEY (WordId) REFERENCES Words(WordId));";
+
+    // Execute using Statement or PreparedStatement
+    executeUpdate(createWordsTable);
+    executeUpdate(createMeaningsTable);
+  }
+
+  private boolean isEmpty(String tableName) throws SQLException {
+    String sql = "SELECT COUNT(*) FROM " + tableName;
+    try (Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(sql)) {
+      return rs.getInt(1) == 0;
     }
   }
 
+  private void loadFromFile(String fileName) throws IOException, SQLException {
+    try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+      // this.conn.setAutoCommit(false); // Start transaction
+      String line;
+      int WordId = 1;
+      // Insert words into dictionary one at a time
+      while ((line = reader.readLine()) != null) {
+        // Process one line
+        String[] data = line.split("\t");
 
-  public DatabaseConnector(String intialDictionaryFile) throws IOException, SQLException {
-    // TODO check if database is populated already, if not initialize the database
+        // Prepare SQL statements using the content of the line
+        String insertWord = String.format("INSERT INTO Words (WordId, Word) VALUES (%d, %s)", WordId, data[0]);
+        String insertMeaning = String.format(
+            "INSERT INTO Meanings (WordId, PartOfSpeech, Meaning, Sentence) VALUES (%d, %s, %s, %s)", WordId, data[1],
+            data[2], data[3]);
 
-    Properties props = new Properties();
+        // FIXME use transaction for this
+        // FIXME use batch for this
+        executeUpdate(insertWord);
+        executeUpdate(insertMeaning);
 
-    // Load the properties file from the resources folder
-    try (InputStream in = getClass().getClassLoader().getResourceAsStream("s1j1k/db.properties")) {
-      if (in == null) {
-        throw new FileNotFoundException("db.properties file not found in classpath");
+        WordId += 1;
       }
-      props.load(in);
+
     }
 
-    // Assign properties to instance variables (using 'this' for clarity)
-    this.url = props.getProperty("jdbc.url");
-    this.username = props.getProperty("jdbc.username");
-    this.password = props.getProperty("jdbc.password");
+    // TODO test that table content matches
+    // TODO function to add a single word
 
-    // Assign the local variable to the instance variable (without 'this' since they don't conflict)
-    this.intialDictionaryFile = intialDictionaryFile;
-    // TODO prefill database if it's not already filled
+    // // FIXME test this, also ignore one line
+    //
+    //
 
+    // try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+    //
+
+    // // Set parameters for the PreparedStatement
+    // pstmt.setString(1, data[0]);
+    // // pstmt.setString(2, data[1]);
+    // // pstmt.setInt(3, Integer.parseInt(data[2])); // Example: if column3 is an
+    // integer
+
+    // pstmt.addBatch(); // Add to batch for efficient insertion
+    // }
+    // pstmt.executeBatch(); // Execute all batched inserts
+    // }
+    // }
+    // conn.commit(); // Commit the transaction
+
+    // System.out.println("Data imported successfully!");
   }
 
   public int executeUpdate(String sqlStatement) {
     // TODO update function if it needs pararms or not
     // TODO try with resources or use finally
     // TODO reduce concurrerncy ? or will SQL handle it automatically
-    try {
-      Connection con = getConnection();
-      PreparedStatement ps = con.prepareStatement(sqlStatement);
+    try (Connection conn = getConnection()) {
+      PreparedStatement ps = conn.prepareStatement(sqlStatement);
       int rs = ps.executeUpdate();
-      con.close();
       return rs;
     } catch (SQLException e) {
       System.out.println("ERROR: updating database failed!");
-    }
+    } 
     return -1;
   }
 
@@ -77,9 +145,12 @@ public class DatabaseConnector {
     StringBuilder wordList = new StringBuilder();
 
     try {
-      conn = getConnection();  // Get the connection
-      stmt = conn.createStatement();  // Create a statement
-      rs = stmt.executeQuery("SELECT Words.Word, Meanings.PartOfSpeech, Meanings.Meaning, Meanings.Sentence FROM Words INNER JOIN Meanings on Words.WordId = Meanings.WordId;");  // Execute the query
+      conn = getConnection(); // Get the connection
+      stmt = conn.createStatement(); // Create a statement
+      rs = stmt.executeQuery(
+          "SELECT Words.Word, Meanings.PartOfSpeech, Meanings.Meaning, Meanings.Sentence FROM Words INNER JOIN Meanings on Words.WordId = Meanings.WordId;"); // Execute
+                                                                                                                                                              // the
+                                                                                                                                                              // query
 
       // Process the ResultSet
       while (rs.next()) {
@@ -96,17 +167,20 @@ public class DatabaseConnector {
     } finally {
       // Close resources in the reverse order of opening them
       try {
-        if (rs != null) rs.close();  // Close ResultSet
+        if (rs != null)
+          rs.close(); // Close ResultSet
       } catch (SQLException e) {
         System.out.println("Error while closing ResultSet: " + e.getMessage());
       }
       try {
-        if (stmt != null) stmt.close();  // Close Statement
+        if (stmt != null)
+          stmt.close(); // Close Statement
       } catch (SQLException e) {
         System.out.println("Error while closing Statement: " + e.getMessage());
       }
       try {
-        if (conn != null) conn.close();  // Close Connection
+        if (conn != null)
+          conn.close(); // Close Connection
       } catch (SQLException e) {
         System.out.println("Error while closing Connection: " + e.getMessage());
       }
@@ -115,6 +189,4 @@ public class DatabaseConnector {
     return wordList.toString();
   }
 
-
 }
-

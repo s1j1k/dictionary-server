@@ -3,6 +3,7 @@ import java.net.*;
 
 import com.google.gson.Gson;
 
+import com.example.dictionary.common.Request;
         
 
 // FIXME add my name here etc.
@@ -24,10 +25,21 @@ public class ClientConnection {
         gson = new Gson();
     }
 
-    public void sendRequest(Request req) {
+    // FIXME should the response be a class in itself
+    // TODO return as Response type (?)
+    public String sendRequest(Request req) throws IOException {
         // Send request to server in JSON format
         String json = gson.toJson(req);
         sendMessage(json);
+
+        // FIXME how to we receive a response here, are we supposed to wait or?
+        String response = receiveMessage(); // FIXME should just use is/os directly here?
+
+        // FIXME update the logging system
+        System.out.println("Client received response: " + response);
+
+        // TODO return as a Response object constructed from JSON not a string
+        return response;
     }
 
     public void sendMessage(String msg) throws IOException {

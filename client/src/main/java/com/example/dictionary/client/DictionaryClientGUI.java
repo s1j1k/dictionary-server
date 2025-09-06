@@ -3,6 +3,10 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+
+// FIXME should we use Request 2 times or just in the client connection class?
+import com.example.dictionary.common.Request;
 
 /**
  * ~ Dictionary Client GUI Skeleton ~
@@ -245,12 +249,11 @@ public class DictionaryClientGUI extends JFrame {
         // FIXME share teh client request class structure with the server so it knows what to expect?
         Request request = new Request("search", word);
 
-        // FIXME handle JSON conversion in the clientConnection file
-        Gson gson = new Gson();
-        String json = gson.toJson(request); // serialize
-        clientConnect.sendMessage(request.)
+        // FIXME get a response back and display it 
+        String response = this.clientConnection.sendRequest(request);
 
-        displayResult("TODO: Implement search functionality for word: " + word);
+        // displayResult("TODO: Implement search functionality for word: " + word);
+        displayResult(response);
     }
 
     /**
@@ -367,11 +370,9 @@ public class DictionaryClientGUI extends JFrame {
                     gui.setClientConnection(clientConnection);
                     // FIXME be able to check if client is connected (?)
                     gui.setConnectionStatus(true); // Set this when actually connected
-                } catch {
+                } catch (IOException e) {
                     // FIXME use JOPTIONPANE or something else 
-                    System.out.println(
-                        "FAILED to connect to server"
-                    );
+                    System.out.println("FAILED to connect to server");
                 }
                 
             }

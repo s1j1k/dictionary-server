@@ -2,4 +2,4 @@ target/*
 .idea
 *.class
 *.jar
-db.properties
+dictionary.db
