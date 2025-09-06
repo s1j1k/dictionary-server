@@ -1,3 +1,5 @@
+package com.example.dictionary.client;
+
 import java.io.*;
 import java.net.*;
 

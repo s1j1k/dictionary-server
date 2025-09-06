@@ -1,3 +1,5 @@
+package com.example.dictionary.client;
+
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
@@ -250,7 +252,14 @@ public class DictionaryClientGUI extends JFrame {
         Request request = new Request("search", word);
 
         // FIXME get a response back and display it 
-        String response = this.clientConnection.sendRequest(request);
+        // FIXME error handling
+        String response = null;
+        try {
+            response = this.clientConnection.sendRequest(request);
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
         // displayResult("TODO: Implement search functionality for word: " + word);
         displayResult(response);
