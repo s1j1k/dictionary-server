@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DatabaseConnector {
   private String jdbcUrl = "jdbc:sqlite:dictionary.db";
@@ -251,35 +253,93 @@ public class DatabaseConnector {
     return wordList.toString();
   }
 
+  /**
+   * Search for the meaning of a word in the DB
+   * @param wordToSearch
+   * @return
+   */
   public String searchWord(String wordToSearch) {
+    // Search for a word in the database and return the Meaning(s)
+
+    // TODO use a Result class for searches
+    // Maybe result class and a sub class for search type to make it format JSON as
+    // a list of meanings
+    // TODO generate a list of Meaning class
+    // TODO convert to Response class
+
+    // FIXME establish a max number of meanings (perhaps in the database itself)
+    // String[] meaningList = new String[10];
+    List<String> meaningList = new ArrayList<>();
+
+    // Format output like
+    // word
+    // 1. meaning one ("sentence")
+    // meaningList.add(wordToSearch);
+
     try (Connection conn = getConnection()) {
-      // Search for a word and return the meaning/s
 
-      // Get the WordId
-      int wordId = -1;
-      try (PreparedStatement findWordId = conn.prepareStatement(
-          "SELECT WordId FROM Words WHERE Word = ?")) {
+      String sql = "SELECT m.MeaningId, m.PartOfSpeech, m.Meaning, m.Sentence " +
+          "FROM Words w JOIN Meanings m ON w.WordId = m.WordId " +
+          "WHERE w.Word = ?";
 
-        findWordId.setString(1, wordToSearch);
+      try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setString(1, wordToSearch);
+        try (ResultSet rs = stmt.executeQuery()) {
+          while (rs.next()) {
+            int meaningId = rs.getInt("MeaningId");
+            String partOfSpeech = rs.getString("PartOfSpeech");
+            String meaning = rs.getString("Meaning");
+            String sentence = rs.getString("Sentence");
 
-        try (ResultSet rs = findWordId.executeQuery()) {
-          if (rs.next()) {
-            // Word exists → get its ID
-            wordId = rs.getInt("WordId");
+            // Do something with the data, e.g., add to a list
+            // TODO Group the results by PartOfSpeech and add a list 1. 2. 3. including the
+            // meaning and the sentence below in ""
+
+            // FIXME remove for debugging
+            System.out.println(partOfSpeech + ": " + meaning + " (" + sentence + ")");
+
+            // FIXME sentence is optional
+            // FIXME remove \n if it's just one
+            int meaningNumber = meaningList.size() + 1;
+            String meaningString = String.format("%d. %s: %s", meaningNumber, partOfSpeech, meaning);
+            if (sentence != null && sentence.length() > 2) {
+              meaningString += " (" + sentence + ")";
+            }
+            meaningList.add(meaningString);
           }
         }
-      }
 
-      // Search for the meanings of the word
-      String insertMeaning = "SELECT PartOfSpeech Meanings.Meaning Meanings.Sentence FROM FROM Words INNER JOIN Meanings on Words.WordId = Meanings.WordId;";
-      try (PreparedStatement insertStmt2 = conn.prepareStatement(insertMeaning)) {
-        insertStmt2.setInt(1, wordId);
-        insertStmt2.executeUpdate();
+        // Return the content of the result or null if there's nothing
+        // FIXME add a wrapper function to get Result class?
+        return String.join(System.lineSeparator(), meaningList);
       }
-
     } catch (SQLException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
+      return null;
+    }
+  }
+
+  /**
+   * Check if word exists in the DB
+   * 
+   * @return word ID if it exists in DB, or -1 if it does not
+   * @throws SQLException
+   */
+  public int checkWordExists(String wordToCheck) throws SQLException {
+    try (Connection conn = getConnection()) {
+      try (PreparedStatement findWordId = conn.prepareStatement("SELECT WordId FROM Words WHERE Word = ?")) {
+        findWordId.setString(1, wordToCheck);
+
+        try (ResultSet rs = findWordId.executeQuery()) {
+          if (rs.next()) {
+            // Word exists, get its ID
+            return rs.getInt("WordId");
+          } else {
+            return -1;
+          }
+        }
+      }
     }
   }
 

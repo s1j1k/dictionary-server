@@ -1,11 +1,11 @@
-word	part of speech	meaning	sentence
-guru	noun	a Hindu spiritual teacher.
-guru	noun	an influential teacher or popular expert.	a management guru
-love	noun	an intense feeling of deep affection.	babies fill parents with feelings of love
-love	verb	feel deep affection for (someone).	he loved his sister dearly
-love	verb	like or enjoy very much.	I just love dancing
-java	noun	coffee.	I'm dying for a cup of java
-channel	noun	a length of water wider than a strait, joining two larger areas of water, especially two seas.
-channel	noun	a band of frequencies used in radio and television transmission, especially as used by a particular station.
-channel	verb	direct towards a particular end or object.	the council is to channel public funds into training schemes
-channel	verb	(of a person) serve as a medium for (a spirit).	she was channelling the spirit of Billie Holiday
+word,part_of_speech,meaning,sentence
+guru,noun,"a Hindu spiritual teacher.",
+guru,noun,"an influential teacher or popular expert.","a management guru"
+love,noun,"an intense feeling of deep affection.","babies fill parents with feelings of love"
+love,verb,"feel deep affection for (someone).","he loved his sister dearly"
+love,verb,"like or enjoy very much.","I just love dancing"
+java,noun,"coffee.","I'm dying for a cup of java"
+channel,noun,"a length of water wider than a strait, joining two larger areas of water, especially two seas.",
+channel,noun,"a band of frequencies used in radio and television transmission, especially as used by a particular station.",
+channel,verb,"direct towards a particular end or object.","the council is to channel public funds into training schemes"
+channel,verb,"(of a person) serve as a medium for (a spirit).","she was channelling the spirit of Billie Holiday"

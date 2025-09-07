@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 
 import com.example.dictionary.common.Request;
-
+import com.example.dictionary.common.Response;
 import com.google.gson.Gson;
 
 // TODO server gui
@@ -42,20 +42,48 @@ class ClientHandler implements Runnable {
             System.out.println("Server received request: " + json);
 
             Request request = gson.fromJson(json, Request.class);
+            Response response = null;
 
             // Handle search type request
             // FIXME should it be command or like type (?)
             switch (request.getCommand()) {
                 case "search":
                     // TODO search in the DB and return the meanings
-                    dictionaryServer.databaseConnector.searchWord(request.getWord());
+                    String result = dictionaryServer.databaseConnector.searchWord(request.getWord());
+                    // FIXME define a fail ??
+                    String status = "success";
+                    // FIXME add javadoc
+                    response = new Response(status, result);
+                    break;
+
+                case "remove": // remove word
+                // TODO
+                    break;
+
+                case "add": // add meaning
+                // TODO
+                    break;
+
+                case "update": // upadte meaning
+                // TODO
+                    break;
 
                 default:
                     // FIXME raise an exception
                     // TODO return an error
                     // FIXME make this more detailed
-                    System.out.println("Incorrect request format");
+                    System.out.println("Invalid request command received");
+                    // FIXME make response status either success or fail
+                    response = new Response("fail", "Invalid request command received");
+                    // TODO default response to fail if try/catch to show an error occured
             }
+
+            // TODO send back the response 
+            if (response == null) {
+                response = new Response("fail", "Failed to form response");
+            }
+            String jsonResponseString = gson.toJson(response);
+            os.writeUTF(jsonResponseString);
 
             // FIXME handle as Request objects
 

@@ -9,6 +9,8 @@ import java.io.IOException;
 
 // FIXME should we use Request 2 times or just in the client connection class?
 import com.example.dictionary.common.Request;
+import com.example.dictionary.common.Response;
+import com.google.gson.Gson;
 
 /**
  * ~ Dictionary Client GUI Skeleton ~
@@ -253,16 +255,24 @@ public class DictionaryClientGUI extends JFrame {
 
         // FIXME get a response back and display it 
         // FIXME error handling
-        String response = null;
+        Response response = null;
+        Gson gson = new Gson(); // FIXME make it common ?
         try {
-            response = this.clientConnection.sendRequest(request);
+            String jsonResponseString = this.clientConnection.sendRequest(request);
+            response = gson.fromJson(jsonResponseString, Response.class);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
         // displayResult("TODO: Implement search functionality for word: " + word);
-        displayResult(response);
+        if (response != null) {
+            displayResult(response.getResult());
+        } else {
+            // TODO proper error handling
+            displayResult("Failed to parse response");
+        }
+        
     }
 
     /**
