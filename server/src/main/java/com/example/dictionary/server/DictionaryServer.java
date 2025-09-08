@@ -7,7 +7,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
-
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import com.example.dictionary.common.Request;
 import com.example.dictionary.common.Response;
 import com.google.gson.Gson;
@@ -21,17 +22,14 @@ class ClientHandler implements Runnable {
 
     Gson gson = new Gson();
 
+    private static Logger logger = LogManager.getLogger(ClientHandler.class);
+
     public ClientHandler(Socket clientSocket, DictionaryServer dictionaryServer) {
         this.clientSocket = clientSocket;
         this.dictionaryServer = dictionaryServer;
     }
 
     public void run() throws RuntimeException {
-        DataOutputStream dataOut = null;
-        OutputStream streamOut = null;
-        // String request = null;
-        // String response = null;
-
         // Get a communication stream associated with the socket
         DataInputStream is = null;
         DataOutputStream os = null;
@@ -44,16 +42,10 @@ class ClientHandler implements Runnable {
             Request request = gson.fromJson(json, Request.class);
             Response response = null;
 
-            // Handle search type request
-            // FIXME should it be command or like type (?)
             switch (request.getCommand()) {
                 case "search":
-                    // TODO search in the DB and return the meanings
-                    String result = dictionaryServer.databaseConnector.searchWord(request.getWord());
-                    // FIXME define a fail ??
-                    String status = "success";
-                    // FIXME add javadoc
-                    response = new Response(status, result);
+                // TODO wrap in try catch in case of any random errors 
+                    response = dictionaryServer.databaseConnector.searchWord(request.getWord());
                     break;
 
                 case "remove": // remove word
@@ -72,7 +64,7 @@ class ClientHandler implements Runnable {
                     // FIXME raise an exception
                     // TODO return an error
                     // FIXME make this more detailed
-                    System.out.println("Invalid request command received");
+                    logger.info("Invalid request command received");
                     // FIXME make response status either success or fail
                     response = new Response("fail", "Invalid request command received");
                     // TODO default response to fail if try/catch to show an error occured

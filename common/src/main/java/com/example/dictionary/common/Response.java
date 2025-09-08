@@ -1,11 +1,20 @@
 package com.example.dictionary.common;
 
+/**
+ * 
+ * Response class
+ */
 public class Response {
     private String status;
     private String result;
 
     // Constructors, getters, setters
-    public Response() {}
+    /**
+     * 
+     * Response class constructor
+     * @param status "success" or "fail"
+     * @param result string containing the content of the response to the client
+     */
     public Response(String status, String result) {
         this.status = status;
         this.result = result;

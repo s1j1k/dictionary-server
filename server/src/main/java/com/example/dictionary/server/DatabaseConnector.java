@@ -6,9 +6,15 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+
+import com.example.dictionary.common.Response;
 
 public class DatabaseConnector {
   private String jdbcUrl = "jdbc:sqlite:dictionary.db";
+
+  private static Logger logger = LogManager.getLogger(DatabaseConnector.class);
 
   // FIXME turned to public to allow testing
   public Connection getConnection() throws SQLException {
@@ -255,27 +261,27 @@ public class DatabaseConnector {
 
   /**
    * Search for the meaning of a word in the DB
+   * 
    * @param wordToSearch
    * @return
    */
-  public String searchWord(String wordToSearch) {
+  public Response searchWord(String wordToSearch) {
     // Search for a word in the database and return the Meaning(s)
 
-    // TODO use a Result class for searches
-    // Maybe result class and a sub class for search type to make it format JSON as
-    // a list of meanings
-    // TODO generate a list of Meaning class
-    // TODO convert to Response class
+    // Check if word exists
+    try {
+      int wordId = checkWordExists(wordToSearch);
+      if (wordId == -1) {
+        return new Response("fail", "Word not found in Dictionary");
+      }
+    } catch (Throwable e) {
+      logger.error("An error occured while checking word exists", e);
+      throw new Exception("An error occured while checking word exists");
+    }
 
-    // FIXME establish a max number of meanings (perhaps in the database itself)
-    // String[] meaningList = new String[10];
     List<String> meaningList = new ArrayList<>();
 
-    // Format output like
-    // word
-    // 1. meaning one ("sentence")
-    // meaningList.add(wordToSearch);
-
+    // Get the list of meanings from the database
     try (Connection conn = getConnection()) {
 
       String sql = "SELECT m.MeaningId, m.PartOfSpeech, m.Meaning, m.Sentence " +
@@ -291,15 +297,6 @@ public class DatabaseConnector {
             String meaning = rs.getString("Meaning");
             String sentence = rs.getString("Sentence");
 
-            // Do something with the data, e.g., add to a list
-            // TODO Group the results by PartOfSpeech and add a list 1. 2. 3. including the
-            // meaning and the sentence below in ""
-
-            // FIXME remove for debugging
-            System.out.println(partOfSpeech + ": " + meaning + " (" + sentence + ")");
-
-            // FIXME sentence is optional
-            // FIXME remove \n if it's just one
             int meaningNumber = meaningList.size() + 1;
             String meaningString = String.format("%d. %s: %s", meaningNumber, partOfSpeech, meaning);
             if (sentence != null && sentence.length() > 2) {
@@ -311,12 +308,13 @@ public class DatabaseConnector {
 
         // Return the content of the result or null if there's nothing
         // FIXME add a wrapper function to get Result class?
-        return String.join(System.lineSeparator(), meaningList);
+        String result = String.join(System.lineSeparator(), meaningList);
+        Response response = new Response("success", result);
+        return response;
       }
     } catch (SQLException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-      return null;
+      logger.error("A database error occured while searching for word meanings", e);
+      return new Response("fail", "A database error occured while searching for word meanings");
     }
   }
 
