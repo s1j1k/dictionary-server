@@ -1,6 +1,8 @@
 import java.io.*;
 import java.net.*;
 
+// FIXME this file can be deleted now
+
 public class DictionaryClient {
     private DictGUI gui;
     DictionaryClient() {

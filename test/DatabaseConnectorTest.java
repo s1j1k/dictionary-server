@@ -40,7 +40,7 @@ class DatabaseConnectorTest {
         // Test the getListOfWords method for correct functionality
         try {
             String wordList = databaseConnector.getListOfWords();
-            System.out.println("Word List: " + wordList);
+            logger.info("Word List: " + wordList);
             assertNotNull(wordList, "Word list should not be null.");
         } catch (SQLException e) {
             fail("Error retrieving list of words: " + e.getMessage());

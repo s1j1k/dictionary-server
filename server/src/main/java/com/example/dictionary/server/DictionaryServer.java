@@ -37,7 +37,7 @@ class ClientHandler implements Runnable {
             is = new DataInputStream(clientSocket.getInputStream());
             os = new DataOutputStream(clientSocket.getOutputStream());
             String json = is.readUTF();
-            System.out.println("Server received request: " + json);
+            logger.info("Server received request: " + json);
 
             Request request = gson.fromJson(json, Request.class);
             Response response = null;
@@ -53,7 +53,7 @@ class ClientHandler implements Runnable {
                     }
                     break;
 
-                case "addWord": 
+                case "addWord":
                     try {
                         response = dictionaryServer.databaseConnector.addWord(request.getWord(), request.getMeanings());
                     } catch (Exception e) {
@@ -61,10 +61,30 @@ class ClientHandler implements Runnable {
                     }
                     break;
 
+                case "removeWord":
+                    try {
+                        response = dictionaryServer.databaseConnector.removeWord(request.getWord());
+                    } catch (Exception e) {
+                        response = new Response("fail", "Error: " + e.getMessage());
+                    }
+                    break;
 
+                case "addMeaning":
+                    try {
+                        response = dictionaryServer.databaseConnector.addMeaning(request.getWord(),
+                                request.getNewMeaning());
+                    } catch (Exception e) {
+                        response = new Response("fail", "Error: " + e.getMessage());
+                    }
+                    break;
 
-                case "update": // upadte meaning
-                    // TODO
+                case "updateMeaning":
+                    try {
+                        response = dictionaryServer.databaseConnector.updateMeaning(request.getWord(),
+                                request.getOldMeaning(), request.getNewMeaning());
+                    } catch (Exception e) {
+                        response = new Response("fail", "Error: " + e.getMessage());
+                    }
                     break;
 
                 default:
@@ -108,6 +128,8 @@ public class DictionaryServer {
 
     DatabaseConnector databaseConnector;
 
+    private static Logger logger = LogManager.getLogger(DictionaryServer.class);
+
     // Maximum number of threads in the thread pool
     static final int MAX_TH = 10;
 
@@ -136,8 +158,8 @@ public class DictionaryServer {
             // TODO convert to like a test
             // Print the word list
             // TODO proper logging
-            System.out.println("Dictionary server initialized!");
-            System.out.println("Initial list of words:\n" + dictionaryServer.databaseConnector.getListOfWords());
+            logger.info("Dictionary server initialized!");
+            logger.info("Initial list of words:\n" + dictionaryServer.databaseConnector.getListOfWords());
 
             // Register service on the given port
             serverSocket = new ServerSocket(port);
@@ -145,13 +167,13 @@ public class DictionaryServer {
             // creating a thread pool with MAX_TH number of threads
             ExecutorService threadPool = newFixedThreadPool(MAX_TH);
 
-            System.out.println("Waiting for client connections...");
+            logger.info("Waiting for client connections...");
 
             // accept multiple connections and use multiple threads
             while (true) {
                 // create a thread and process any input clients requests?
                 Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
-                System.out.println("Accepted a connection.");
+                logger.info("Accepted a connection.");
                 // create a thread to handle this client
                 // FIXME should we just hand in the database connector?
                 Runnable task = new ClientHandler(clientSocket, dictionaryServer);

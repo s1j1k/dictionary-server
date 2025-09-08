@@ -263,6 +263,8 @@ public class DictionaryClientGUI extends JFrame {
             logger.error("An error occured while connecting to server.", e);
             // Assume connection has been lost
             response = new Response("fail", "An error occured while connecting to server.");
+            // Update the status to disconnected
+            setConnectionStatus(false);
         }
 
         displayResult(response.getResult());
@@ -278,12 +280,8 @@ public class DictionaryClientGUI extends JFrame {
             return;
         }
 
-        // TODO: Implement socket communication to server
-        displayResult("TODO: Implement add word functionality for: " + word);
-
-        // FIXME uncomment, what is the format of meanings?
         // Form the request to server
-        // Assume different meanings are separated by newline OR comma
+        // Assume different meanings are separated by newline
         Request request = new Request("addWord", word, meanings);
 
         // Send the request in JSON format
@@ -296,6 +294,8 @@ public class DictionaryClientGUI extends JFrame {
             logger.error("An error occured while connecting to server.", e);
             // Assume connection has been lost
             response = new Response("fail", "An error occured while connecting to server.");
+            // Update the status to disconnected
+            setConnectionStatus(false);
         }
 
         displayResult(response.getResult());
@@ -311,8 +311,25 @@ public class DictionaryClientGUI extends JFrame {
             return;
         }
 
-        // TODO: Implement socket communication to server
-        displayResult("TODO: Implement remove word functionality for: " + word);
+        // Form the request to server
+        // Assume different meanings are separated by newline OR comma
+        Request request = new Request("removeWord", word);
+
+        // Send the request in JSON format
+        Response response = null;
+        try {
+            String jsonResponseString = this.clientConnection.sendRequest(request);
+            response = gson.fromJson(jsonResponseString, Response.class);
+        } catch (IOException e) {
+            // Log detailed error info
+            logger.error("An error occured while connecting to server.", e);
+            // Assume connection has been lost
+            response = new Response("fail", "An error occured while connecting to server.");
+            // Update the status to disconnected
+            setConnectionStatus(false);
+        }
+
+        displayResult(response.getResult());
     }
 
     /**
@@ -325,8 +342,25 @@ public class DictionaryClientGUI extends JFrame {
             return;
         }
 
-        // TODO: Implement socket communication to server
-        displayResult("TODO: Implement add meaning functionality for: " + word);
+        // Form the request to server
+        // Assume different meanings are separated by newline OR comma
+        Request request = new Request("addMeaning", word, newMeaning);
+
+        // Send the request in JSON format
+        Response response = null;
+        try {
+            String jsonResponseString = this.clientConnection.sendRequest(request);
+            response = gson.fromJson(jsonResponseString, Response.class);
+        } catch (IOException e) {
+            // Log detailed error info
+            logger.error("An error occured while connecting to server.", e);
+            // Assume connection has been lost
+            response = new Response("fail", "An error occured while connecting to server.");
+            // Update the status to disconnected
+            setConnectionStatus(false);
+        }
+
+        displayResult(response.getResult());
     }
 
     /**
@@ -339,8 +373,25 @@ public class DictionaryClientGUI extends JFrame {
             return;
         }
 
-        // TODO: Implement socket communication to server
-        displayResult("TODO: Implement update meaning functionality for: " + word);
+        // Form the request to server
+        // Assume different meanings are separated by newline OR comma
+        Request request = new Request("updateMeaning", word, existingMeaning, newMeaning);
+
+        // Send the request in JSON format
+        Response response = null;
+        try {
+            String jsonResponseString = this.clientConnection.sendRequest(request);
+            response = gson.fromJson(jsonResponseString, Response.class);
+        } catch (IOException e) {
+            // Log detailed error info
+            logger.error("An error occured while connecting to server.", e);
+            // Assume connection has been lost
+            response = new Response("fail", "An error occured while connecting to server.");
+            // Update the status to disconnected
+            setConnectionStatus(false);
+        }
+
+        displayResult(response.getResult());
     }
 
     /**

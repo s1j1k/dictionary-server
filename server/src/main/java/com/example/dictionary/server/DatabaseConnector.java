@@ -27,7 +27,7 @@ public class DatabaseConnector {
 
     // Initialize connection to test SQLite working
     try (Connection conn = getConnection()) {
-      System.out.println("Connection to dictionary.db established!");
+      logger.info("Connection to dictionary.db established!");
     }
 
     // Create tables if they don't exist
@@ -50,14 +50,15 @@ public class DatabaseConnector {
         "WordId INTEGER PRIMARY KEY AUTOINCREMENT," +
         "Word TEXT NOT NULL UNIQUE);";
 
+    // Referenced foreign key from Words, will delete meanings when word is deleted
     String createMeaningsTable = "CREATE TABLE IF NOT EXISTS Meanings (" +
         "MeaningId INTEGER PRIMARY KEY AUTOINCREMENT," +
-        "WordId INTEGER," +
+        "WordId INTEGER NOT NULL," +
         "PartOfSpeech TEXT CHECK(PartOfSpeech IN ('noun','pronoun','verb','adjective','adverb','preposition','conjunction','interjection')),"
         +
         "Meaning TEXT NOT NULL," +
         "Sentence TEXT," +
-        "FOREIGN KEY (WordId) REFERENCES Words(WordId));";
+        "FOREIGN KEY (WordId) REFERENCES Words(WordId) ON DELETE CASCADE);";
 
     // Execute using Statement or PreparedStatement
     executeUpdate(createWordsTable);
@@ -163,32 +164,6 @@ public class DatabaseConnector {
       }
 
     }
-
-    // TODO test that table content matches
-    // TODO function to add a single word
-
-    // // FIXME test this, also ignore one line
-    //
-    //
-
-    // try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-    //
-
-    // // Set parameters for the PreparedStatement
-    // pstmt.setString(1, data[0]);
-    // // pstmt.setString(2, data[1]);
-    // // pstmt.setInt(3, Integer.parseInt(data[2])); // Example: if column3 is an
-    // integer
-
-    // pstmt.addBatch(); // Add to batch for efficient insertion
-    // }
-    // pstmt.executeBatch(); // Execute all batched inserts
-    // }
-    // }
-    // conn.commit(); // Commit the transaction
-
-    // System.out.println("Data imported successfully!");
   }
 
   // FIXME woeks for things without params to insert, simple statements
@@ -199,7 +174,7 @@ public class DatabaseConnector {
         return rs;
       }
     } catch (SQLException e) {
-      System.out.println("ERROR: updating database failed! Statement: " + sqlStatement);
+      logger.error("Updating database failed. Statement: " + sqlStatement);
       e.printStackTrace();
     }
     return -1;
@@ -245,7 +220,16 @@ public class DatabaseConnector {
             String sentence = rs.getString("Sentence");
 
             int meaningNumber = meaningList.size() + 1;
-            String meaningString = String.format("%d. %s: %s", meaningNumber, partOfSpeech, meaning);
+            String meaningString;
+
+            // PartOfSpeech is optional, include before meaning it if it's there
+            if (partOfSpeech != null && partOfSpeech.length() > 1) {
+              meaningString = String.format("%d. %s: %s", meaningNumber, partOfSpeech, meaning);
+            } else {
+              meaningString = String.format("%d. %s", meaningNumber, meaning);
+            }
+
+            // Sentence is optional, include it at the end if it's there
             if (sentence != null && sentence.length() > 2) {
               meaningString += " (" + sentence + ")";
             }
@@ -331,9 +315,9 @@ public class DatabaseConnector {
       }
 
       // Separate meanings into an array
-      // NOTE we assume meanings are separated by new line or comma
+      // NOTE we assume meanings are separated by new line
       // TODO indicate somewhere on the GUI this assumption
-      String[] meaningsArray = meanings.split(System.lineSeparator() + "|,");
+      String[] meaningsArray = meanings.split(System.lineSeparator());
 
       // Insert meanings for this word
       // NOTE we are skipping PartOfSpeech, Sentence, can be added back as an extra
@@ -352,4 +336,254 @@ public class DatabaseConnector {
     return new Response("success", "New word added successfully.");
   }
 
+  /**
+   * Get the list of words in the dictionary, used for debugging / logging
+   * purposes
+   * 
+   * @return
+   * @throws SQLException
+   */
+  public String getListOfWords() throws SQLException {
+    ResultSet rs = null;
+    Statement stmt = null;
+    Connection conn = null;
+
+    // Use StringBuilder for efficient string concatenation
+    StringBuilder wordList = new StringBuilder();
+
+    try {
+      conn = getConnection(); // Get the connection
+      stmt = conn.createStatement(); // Create a statement
+      rs = stmt.executeQuery(
+          "SELECT Words.Word, Meanings.PartOfSpeech, Meanings.Meaning, Meanings.Sentence FROM Words INNER JOIN Meanings on Words.WordId = Meanings.WordId;"); // Execute
+                                                                                                                                                              // the
+                                                                                                                                                              // query
+
+      // Process the ResultSet
+      // FIXME do this more efficiently and use a class for Words
+      while (rs.next()) {
+        String word = rs.getString("Word");
+        String partOfSpeech = rs.getString("PartOfSpeech");
+        String meaning = rs.getString("Meaning");
+        String sentence = rs.getString("Sentence");
+
+        // Append formatted data to the StringBuilder
+        wordList.append(String.format("%s,%s,%s,%s\n", word, partOfSpeech, meaning, sentence));
+      }
+    } catch (SQLException e) {
+      logger.error("An error occured while processing the ResultSet", e);
+    } finally {
+      // Close resources in the reverse order of opening them
+      try {
+        if (rs != null)
+          rs.close(); // Close ResultSet
+      } catch (SQLException e) {
+        logger.error("An error occured while closing ResultSet", e);
+      }
+      try {
+        if (stmt != null)
+          stmt.close(); // Close Statement
+      } catch (SQLException e) {
+        logger.error("An error occured while closing Statement.", e);
+      }
+      try {
+        if (conn != null)
+          conn.close(); // Close Connection
+      } catch (SQLException e) {
+        logger.error("An error occured while closing Connection.", e);
+      }
+    }
+
+    return wordList.toString();
+  }
+
+  /**
+   * Delete a word and its meanings from the database
+   * 
+   * @param wordToRemove
+   * @return
+   * @throws Exception - in case of failure to connect to DB
+   */
+  public Response removeWord(String wordToRemove) throws Exception {
+
+    // Check word exists, return an error response if it does not exist
+    try {
+      int wordId = checkWordExists(wordToRemove);
+      if (wordId == -1) {
+        return new Response("fail", "Error: Word does not exist in dictionary.");
+      }
+    } catch (SQLException e) {
+      logger.error("An error occured while connecting to database.", e);
+      throw new Exception("An error occured while connecting to database.");
+    }
+
+    // Delete word from database
+    try (Connection conn = getConnection()) {
+      try (PreparedStatement deleteWord = conn.prepareStatement("DELETE FROM Words WHERE Word = (?)")) {
+        deleteWord.setString(1, wordToRemove);
+        deleteWord.executeUpdate();
+      } catch (Throwable e) {
+        logger.error("An error occured while deleting word", e);
+        throw new Exception("An error occurred while deleting word.");
+      }
+    } catch (Throwable e) {
+      logger.error("An error occured while connecting to database.", e);
+      throw new Exception("An error occured while connecting to database.");
+    }
+
+    return new Response("success", "Word successfully removed.");
+
+  }
+
+  public Response addMeaning(String wordToUpdate, String meaningToAdd) throws Exception {
+
+    // Check word exists, return an error response if it does not exist
+    try {
+      int wordId = checkWordExists(wordToUpdate);
+      if (wordId == -1) {
+        return new Response("fail", "Error: Word does not exist in dictionary.");
+      }
+    } catch (SQLException e) {
+      logger.error("An error occured while connecting to database.", e);
+      throw new Exception("An error occured while connecting to database.");
+    }
+
+    // Add one more meaning to list
+    // Check if this meaning is already included in database, return an error if it
+    // is
+    // TODO add prepared statements execution to a function which can throw the
+    // required specific errors
+    boolean exists = checkMeaningExists(wordToUpdate, meaningToAdd);
+    if (exists) {
+      return new Response("fail", "Error: Meaning exists already.");
+    }
+
+    try (Connection conn = getConnection()) {
+
+      String sql2 = """
+              INSERT INTO Meanings (WordId, Meaning)
+              VALUES (
+                  (SELECT WordId FROM Words WHERE Word = ?),
+                  ?
+              )
+          """;
+
+      try (PreparedStatement stmt = conn.prepareStatement(sql2)) {
+        stmt.setString(1, wordToUpdate);
+        stmt.setString(2, meaningToAdd);
+
+        int rows = stmt.executeUpdate();
+        if (rows > 0) {
+          logger.info("Meaning added successfully.");
+          return new Response("success", "Meaning added successfully.");
+        } else {
+          logger.info("Word not found, no meaning added.");
+          return new Response("fail", "Word not found, no meaning added.");
+        }
+      } catch (Throwable e) {
+        logger.error("An error occured while adding meaning to database.", e);
+        throw new Exception("An error occured while adding meaning to database.");
+      }
+
+    } catch (Throwable e) {
+      logger.error("An error occurred while connecting to database.", e);
+      throw new Exception("An error occurred while connecting to database.");
+    }
+
+  }
+
+  public Response updateMeaning(String wordToUpdate, String oldMeaning, String newMeaning) throws Exception {
+    // Check word exists
+    // FIXME can probably just combine with checking if meaning exists
+    // Check word exists, return an error response if it does not exist
+    try {
+      int wordId = checkWordExists(wordToUpdate);
+      if (wordId == -1) {
+        return new Response("fail", "Error: Word does not exist in dictionary.");
+      }
+    } catch (SQLException e) {
+      logger.error("An error occured while connecting to database.", e);
+      throw new Exception("An error occured while connecting to database.");
+    }
+
+    // Check meaning exists
+    boolean exists = checkMeaningExists(wordToUpdate, oldMeaning);
+    if (exists == false) {
+      return new Response("fail", "Meaning does not exist in database.");
+    }
+
+    // Meaning exists, update the meaning
+    // FIXME should I be adding locks to the transactions or something ? 
+    
+    try (Connection conn = getConnection()) {
+      String sql = """
+              UPDATE Meanings
+              SET Meaning = ?
+              WHERE WordId = (SELECT WordId FROM Words WHERE Word = ?)
+                AND Meaning = ?
+          """;
+
+      try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setString(1, newMeaning);
+        stmt.setString(2, wordToUpdate);
+        stmt.setString(3, oldMeaning);
+
+        int rows = stmt.executeUpdate();
+        if (rows > 0) {
+          return new Response("success", "Meaning updated successfully.");
+        } else {
+          return new Response("fail", "Error: No matching meaning found to update.");
+        }
+      }
+    }
+
+  }
+
+  /**
+   * Utility function to check if a meaning already exists in database
+   * 
+   * @param word
+   * @param meaning
+   * @return
+   * @throws Exception
+   */
+  public boolean checkMeaningExists(String word, String meaning) throws Exception {
+    try (Connection conn = getConnection()) {
+      // FIXME use multi line strings in other places too
+      // FIXME define constants (SQL queries) in another places
+      String sql = """
+              SELECT EXISTS (
+                  SELECT 1
+                  FROM Words w
+                  JOIN Meanings m ON w.WordId = m.WordId
+                  WHERE w.Word = ?
+                    AND m.Meaning = ?
+              )
+          """;
+
+      try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setString(1, word);
+        stmt.setString(2, meaning);
+
+        try (ResultSet rs = stmt.executeQuery()) {
+          if (rs.next()) {
+            boolean exists = rs.getInt(1) == 1;
+            if (exists) {
+              return true;
+            } else {
+              return false;
+            }
+          } else {
+            throw new Exception("No result when checking if meaning exists in database.");
+          }
+        }
+      } catch (Throwable e) {
+        logger.error("An error occurred while checking if meaning exists in database.", e);
+        throw new Exception("An error occurred while checking if meaning exists in database.");
+      }
+    } catch (Throwable e) {
+      logger.error("An error occurred while connecting to the database", e);
+      throw new Exception("An error occurred while connecting to the database");
+    }
+  }
 }

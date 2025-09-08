@@ -4,6 +4,8 @@ public class Request {
     private String command;
     private String word;
     private String meanings;
+    private String newMeaning;
+    private String oldMeaning;
 
     // Constructors, getters, setters
     public Request() {
@@ -16,7 +18,21 @@ public class Request {
 
     public Request(String command, String word, String meanings) {
         this(command, word);
-        this.meanings = meanings;
+
+        if (command == "addMeaning") {
+            this.newMeaning = meanings;
+        }
+
+        if (command == "addWord") {
+            this.meanings = meanings;
+        }
+    }
+
+    public Request(String command, String word, String oldMeaning, String newMeaning) {
+        this(command, word);
+
+        this.oldMeaning = oldMeaning;
+        this.newMeaning = newMeaning;
     }
 
     public String getCommand() {
@@ -41,5 +57,21 @@ public class Request {
 
     public void setMeanings(String meanings) {
         this.meanings = meanings;
+    }
+
+    public String getNewMeaning() {
+        return newMeaning;
+    }
+
+    public void setNewMeaning(String newMeaning) {
+        this.newMeaning = newMeaning;
+    }
+
+    public String getOldMeaning() {
+        return oldMeaning;
+    }
+
+    public void setOldMeaning(String oldMeaning) {
+        this.oldMeaning = oldMeaning;
     }
 }
