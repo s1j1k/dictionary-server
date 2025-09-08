@@ -2,29 +2,40 @@ package com.example.dictionary.server;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import java.io.*;
-import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.filter.ThresholdFilter;
+import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.LogManager;
 import com.example.dictionary.common.Request;
 import com.example.dictionary.common.Response;
 import com.google.gson.Gson;
+import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import org.apache.logging.log4j.core.filter.ThresholdFilter;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.Filter;
 
 // TODO server gui
 //class DictionaryMonitor {}
+// TODO rename to server gui
 
 class ClientHandler implements Runnable {
     private Socket clientSocket;
-    private DictionaryServer dictionaryServer;
-
-    Gson gson = new Gson();
+    private DictionaryServerGUI dictionaryServer;
 
     private static Logger logger = LogManager.getLogger(ClientHandler.class);
 
-    public ClientHandler(Socket clientSocket, DictionaryServer dictionaryServer) {
+    Gson gson = new Gson();
+
+    public ClientHandler(Socket clientSocket, DictionaryServerGUI dictionaryServer) {
         this.clientSocket = clientSocket;
         this.dictionaryServer = dictionaryServer;
     }
@@ -118,27 +129,119 @@ class ClientHandler implements Runnable {
         // Close the connection after each request
         try {
             this.clientSocket.close();
+            // TODO implement that
+            this.dictionaryServer.decrementNumActiveConnections();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 }
 
-public class DictionaryServer {
+public class DictionaryServerGUI extends JFrame {
 
     DatabaseConnector databaseConnector;
 
-    private static Logger logger = LogManager.getLogger(DictionaryServer.class);
+    // Logger configuration
+    private static Logger logger = LogManager.getLogger(DictionaryServerGUI.class);
 
     // Maximum number of threads in the thread pool
     static final int MAX_TH = 10;
 
-    public DictionaryServer(String intialDictionaryFile) throws SQLException, IOException {
-        // load initial dictionary data from txt file using SQL statements
-        // TODO do something with the file ?? or should that be already done?
-        // FIXME can we reuse it across multiple threads?
+    // GUI Components
+    private JLabel connectionsCountLabel;
+    private JTextArea logsArea;
+
+    // Track the number of active connections
+    private int numActiveConnections;
+
+    // GUI appender logger configuration
+    Layout<? extends Serializable> layout = PatternLayout.newBuilder().withPattern("[%d{HH:mm:ss}] %-5level: %msg%n")
+            .build();
+    Filter filter = ThresholdFilter.createFilter(Level.INFO, Filter.Result.ACCEPT, Filter.Result.DENY);
+
+    // Build and start the appender
+    GuiAppender guiAppender = new GuiAppender("GuiAppender", filter, layout, true, logsArea);
+
+    public DictionaryServerGUI(String intialDictionaryFile) throws SQLException, IOException {
         this.databaseConnector = new DatabaseConnector(intialDictionaryFile);
-        // todo read back the data in the database
+        this.numActiveConnections = 0;
+
+        // Start the GUI appender
+        guiAppender.start();
+
+        // Attach it to the root logger so it receives the same events
+        org.apache.logging.log4j.core.Logger coreLogger = (org.apache.logging.log4j.core.Logger) LogManager
+                .getRootLogger();
+        coreLogger.addAppender(guiAppender);
+    }
+
+    public JTextArea getLogsArea() {
+        return this.logsArea;
+    }
+
+    // TODO show the number of active connections, operational logs, server
+    // start/stop
+    private void initializeGUI() {
+        setTitle("Dictionary Server");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Create main panels
+        add(createActiveConnectionsPanel(), BorderLayout.NORTH);
+        add(createLogsPanel(), BorderLayout.CENTER);
+        add(createStartStopPanel(), BorderLayout.SOUTH);
+
+        pack();
+        setLocationRelativeTo(null);
+        setResizable(true);
+    }
+
+    private JPanel createActiveConnectionsPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panel.setBorder(new TitledBorder("Active Connections"));
+
+        connectionsCountLabel = new JLabel("0");
+        // statusLabel.setForeground(Color.RED);
+        panel.add(connectionsCountLabel);
+
+        return panel;
+    }
+
+    // private JPanel createLogsPanel() {
+    // JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    // panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+    // // Add loga panel
+    // panel.add(());
+
+    // return panel;
+    // }
+
+    private JPanel createLogsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(new TitledBorder("Operational Logs"));
+
+        logsArea = new JTextArea(8, 50);
+        logsArea.setEditable(false);
+        logsArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        JScrollPane scrollPane = new JScrollPane(logsArea);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    void incrementNumActiveConnections() {
+        // Increase number of active connections and display it
+        this.numActiveConnections++;
+        connectionsCountLabel.setText(Integer.toString(this.numActiveConnections));
+    }
+
+    void decrementNumActiveConnections() {
+        // Decrease number of active connections and display it
+        this.numActiveConnections--;
+        connectionsCountLabel.setText(Integer.toString(this.numActiveConnections));
     }
 
     public static void main(String args[]) throws IOException, SQLException {
@@ -152,7 +255,7 @@ public class DictionaryServer {
             // initialize dictionary server
             // FIXME does it even make sense to instantiate oneself during main fil
             // execution?
-            DictionaryServer dictionaryServer = new DictionaryServer(initialDictionaryFile);
+            DictionaryServerGUI dictionaryServer = new DictionaryServerGUI(initialDictionaryFile);
 
             // FIXME remove - for debugging
             // TODO convert to like a test
@@ -174,6 +277,9 @@ public class DictionaryServer {
                 // create a thread and process any input clients requests?
                 Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
                 logger.info("Accepted a connection.");
+                // TODO implement
+                // Increase number of active connections
+                dictionaryServer.incrementNumActiveConnections();
                 // create a thread to handle this client
                 // FIXME should we just hand in the database connector?
                 Runnable task = new ClientHandler(clientSocket, dictionaryServer);

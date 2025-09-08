@@ -8,6 +8,9 @@
             <Pattern>%d{yyyy-MM-dd HH:mm:ss} %-5p %m%n</Pattern>
         </PatternLayout>
     </File>
+    <GuiAppender name="GuiAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+    </GuiAppender>
 </Appenders>
 
 <!-- Enable appenders in Loggers section -->
@@ -16,6 +19,7 @@
    <AsyncRoot level="info">
     <AppenderRef ref="stdout" />
     <AppenderRef ref="fout"/>
+    <AppenderRef ref="GuiAppender"/>
 </AsyncRoot>
 
 </Loggers>
