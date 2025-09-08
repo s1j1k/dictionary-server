@@ -205,74 +205,21 @@ public class DatabaseConnector {
     return -1;
   }
 
-  public String getListOfWords() throws SQLException {
-    ResultSet rs = null;
-    Statement stmt = null;
-    Connection conn = null;
-
-    // Use StringBuilder for efficient string concatenation
-    StringBuilder wordList = new StringBuilder();
-
-    try {
-      conn = getConnection(); // Get the connection
-      stmt = conn.createStatement(); // Create a statement
-      rs = stmt.executeQuery(
-          "SELECT Words.Word, Meanings.PartOfSpeech, Meanings.Meaning, Meanings.Sentence FROM Words INNER JOIN Meanings on Words.WordId = Meanings.WordId;"); // Execute
-                                                                                                                                                              // the
-                                                                                                                                                              // query
-
-      // Process the ResultSet
-      // FIXME do this more efficiently and use a class for Words
-      while (rs.next()) {
-        String word = rs.getString("Word");
-        String partOfSpeech = rs.getString("PartOfSpeech");
-        String meaning = rs.getString("Meaning");
-        String sentence = rs.getString("Sentence");
-
-        // Append formatted data to the StringBuilder
-        wordList.append(String.format("%s,%s,%s,%s\n", word, partOfSpeech, meaning, sentence));
-      }
-    } catch (SQLException e) {
-      System.out.println("Error while processing the ResultSet: " + e.getMessage());
-    } finally {
-      // Close resources in the reverse order of opening them
-      try {
-        if (rs != null)
-          rs.close(); // Close ResultSet
-      } catch (SQLException e) {
-        System.out.println("Error while closing ResultSet: " + e.getMessage());
-      }
-      try {
-        if (stmt != null)
-          stmt.close(); // Close Statement
-      } catch (SQLException e) {
-        System.out.println("Error while closing Statement: " + e.getMessage());
-      }
-      try {
-        if (conn != null)
-          conn.close(); // Close Connection
-      } catch (SQLException e) {
-        System.out.println("Error while closing Connection: " + e.getMessage());
-      }
-    }
-
-    return wordList.toString();
-  }
-
   /**
    * Search for the meaning of a word in the DB
    * 
    * @param wordToSearch
    * @return
+   * @throws Exception in case of unexpected errors
    */
-  public Response searchWord(String wordToSearch) {
+  public Response searchWord(String wordToSearch) throws Exception {
     // Search for a word in the database and return the Meaning(s)
 
     // Check if word exists
     try {
       int wordId = checkWordExists(wordToSearch);
       if (wordId == -1) {
-        return new Response("fail", "Word not found in Dictionary");
+        return new Response("fail", "Word not found in dictionary");
       }
     } catch (Throwable e) {
       logger.error("An error occured while checking word exists", e);
@@ -315,6 +262,9 @@ public class DatabaseConnector {
     } catch (SQLException e) {
       logger.error("A database error occured while searching for word meanings", e);
       return new Response("fail", "A database error occured while searching for word meanings");
+    } catch (Throwable e) {
+      logger.error("An unexpected error occured while searching for word meanings", e);
+      throw new Exception("An unexpected error occured while searching for word meanings");
     }
   }
 
@@ -339,6 +289,67 @@ public class DatabaseConnector {
         }
       }
     }
+  }
+
+  /**
+   * Add a word and its meanings to dictionary
+   * 
+   * @param wordToAdd
+   * @param meanings
+   * @return
+   * @throws Exception
+   */
+  public Response addWord(String wordToAdd, String meanings) throws Exception {
+    // Check word exists, return an error response if it does exist
+    try {
+      int wordId = checkWordExists(wordToAdd);
+      if (wordId != -1) {
+        return new Response("fail", "Error: Word already exists in dictionary.");
+      }
+    } catch (SQLException e) {
+      logger.error("An error occured while connection to database.", e);
+      throw new Exception("An error occured while connection to database.");
+    }
+
+    // Word doesn't exist already, add it to the dictionary
+    int wordId;
+    try (Connection conn = getConnection()) {
+
+      // Add word to database and get the wordId
+      try (PreparedStatement addWord = conn.prepareStatement("INSERT INTO Words (Word) VALUES (?)")) {
+        addWord.setString(1, wordToAdd);
+
+        addWord.executeUpdate();
+
+        try (ResultSet genKeys = addWord.getGeneratedKeys()) {
+          if (genKeys.next()) {
+            wordId = genKeys.getInt(1);
+          } else {
+            throw new SQLException("Inserting word failed, no ID returned.");
+          }
+        }
+      }
+
+      // Separate meanings into an array
+      // NOTE we assume meanings are separated by new line or comma
+      // TODO indicate somewhere on the GUI this assumption
+      String[] meaningsArray = meanings.split(System.lineSeparator() + "|,");
+
+      // Insert meanings for this word
+      // NOTE we are skipping PartOfSpeech, Sentence, can be added back as an extra
+      // feature later
+      for (String meaning : meaningsArray) {
+        String insertMeaning = "INSERT INTO Meanings (WordId, Meaning) VALUES (?, ?)";
+        try (PreparedStatement addMeaning = conn.prepareStatement(insertMeaning)) {
+          addMeaning.setInt(1, wordId);
+          addMeaning.setString(2, meaning);
+          addMeaning.executeUpdate();
+        }
+      }
+
+    }
+
+    return new Response("success", "New word added successfully.");
   }
 
 }

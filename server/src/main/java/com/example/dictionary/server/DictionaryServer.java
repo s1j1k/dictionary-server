@@ -42,55 +42,42 @@ class ClientHandler implements Runnable {
             Request request = gson.fromJson(json, Request.class);
             Response response = null;
 
+            // TODO first confirm request is good or wrap in try/catch and a function
+
             switch (request.getCommand()) {
-                case "search":
-                // TODO wrap in try catch in case of any random errors 
-                    response = dictionaryServer.databaseConnector.searchWord(request.getWord());
+                case "searchWord":
+                    try {
+                        response = dictionaryServer.databaseConnector.searchWord(request.getWord());
+                    } catch (Exception e) {
+                        response = new Response("fail", "Error: " + e.getMessage());
+                    }
                     break;
 
-                case "remove": // remove word
-                // TODO
+                case "addWord": 
+                    try {
+                        response = dictionaryServer.databaseConnector.addWord(request.getWord(), request.getMeanings());
+                    } catch (Exception e) {
+                        response = new Response("fail", "Error: " + e.getMessage());
+                    }
                     break;
 
-                case "add": // add meaning
-                // TODO
-                    break;
+
 
                 case "update": // upadte meaning
-                // TODO
+                    // TODO
                     break;
 
                 default:
-                    // FIXME raise an exception
-                    // TODO return an error
-                    // FIXME make this more detailed
                     logger.info("Invalid request command received");
-                    // FIXME make response status either success or fail
                     response = new Response("fail", "Invalid request command received");
-                    // TODO default response to fail if try/catch to show an error occured
             }
 
-            // TODO send back the response 
+            // Send back the response
             if (response == null) {
                 response = new Response("fail", "Failed to form response");
             }
             String jsonResponseString = gson.toJson(response);
             os.writeUTF(jsonResponseString);
-
-            // FIXME handle as Request objects
-
-            // handle the particular request here
-            // NOTE you are not required to produce a list of words for scrolling
-            // TODO add this optional feature at the end
-            // if (request.equals("INIT")) {
-            // // fixme is this reference of the OK with multi threading?
-            // // todo make asynchronous (blocking) at the database connector side (?)
-            // String wordList = dictionaryServer.databaseConnector.getListOfWords();
-            // os.writeUTF(wordList);
-            // System.out.println("Server sent words list: " + wordList);
-            // }
-
-            // TODO search word meaning
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -107,6 +94,8 @@ class ClientHandler implements Runnable {
                 throw new RuntimeException(e);
             }
         }
+
+        // Close the connection after each request
         try {
             this.clientSocket.close();
         } catch (IOException e) {
@@ -170,12 +159,14 @@ public class DictionaryServer {
                 // todo make an option to close the application and exit this loop
             }
 
+            // FIXME shut it down?
             // pool is shutdown
             // threadPool.shutdown();
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
+            // FIXME close client here also?
             try {
                 if (serverSocket != null) {
                     serverSocket.close();

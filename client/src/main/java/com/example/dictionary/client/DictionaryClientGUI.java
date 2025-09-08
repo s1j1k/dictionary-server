@@ -6,6 +6,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 // FIXME should we use Request 2 times or just in the client connection class?
 import com.example.dictionary.common.Request;
@@ -19,7 +21,7 @@ import com.google.gson.Gson;
  * protocol implementation.
  *
  * @author [Student Name]
- * Student ID: [Student ID]
+ *         Student ID: [Student ID]
  */
 public class DictionaryClientGUI extends JFrame {
 
@@ -36,6 +38,9 @@ public class DictionaryClientGUI extends JFrame {
     private JButton updateMeaningButton;
     private JLabel statusLabel;
 
+    // Gson for converting between objects and JSON strings
+    Gson gson = new Gson();
+
     // Connection status
     private boolean isConnected = false;
 
@@ -46,7 +51,10 @@ public class DictionaryClientGUI extends JFrame {
     public void setClientConnection(ClientConnection connection) {
         this.clientConnection = connection;
     }
-    
+
+    // Logger
+    private static Logger logger = LogManager.getLogger(DictionaryClientGUI.class);
+
     public DictionaryClientGUI() {
         initializeGUI();
     }
@@ -232,11 +240,8 @@ public class DictionaryClientGUI extends JFrame {
         return panel;
     }
 
-    // Methods to be implemented by you
-
     /**
      * Search for a word in the dictionary
-     * You need to implement this
      */
     private void searchWord() {
         String word = wordField.getText().trim();
@@ -245,39 +250,27 @@ public class DictionaryClientGUI extends JFrame {
             return;
         }
 
-        // TODO: Implement socket communication to server
-        // clientConnection.sendMessage("Search:")
-        // TODO format request as JSON {request: "search", word: "word to be searched"}
-        // FIXME use an enum to specify what kinds of requests can be done in Request class (?)
-        // FIXME specify the JSON schema common to both client/server ?
-        // FIXME share teh client request class structure with the server so it knows what to expect?
-        Request request = new Request("search", word);
+        // Form the request to server
+        Request request = new Request("searchWord", word);
 
-        // FIXME get a response back and display it 
-        // FIXME error handling
+        // Send the request in JSON format
         Response response = null;
-        Gson gson = new Gson(); // FIXME make it common ?
         try {
             String jsonResponseString = this.clientConnection.sendRequest(request);
             response = gson.fromJson(jsonResponseString, Response.class);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            // Log detailed error info
+            logger.error("An error occured while connecting to server.", e);
+            // Assume connection has been lost
+            response = new Response("fail", "An error occured while connecting to server.");
         }
 
-        // displayResult("TODO: Implement search functionality for word: " + word);
-        if (response != null) {
-            displayResult(response.getResult());
-        } else {
-            // TODO proper error handling
-            displayResult("Failed to parse response");
-        }
-        
+        displayResult(response.getResult());
+
     }
 
     /**
      * Add a new word with meanings to the dictionary
-     * You need to implement this
      */
     private void addWord(String word, String meanings) {
         if (word.trim().isEmpty() || meanings.trim().isEmpty()) {
@@ -287,6 +280,25 @@ public class DictionaryClientGUI extends JFrame {
 
         // TODO: Implement socket communication to server
         displayResult("TODO: Implement add word functionality for: " + word);
+
+        // FIXME uncomment, what is the format of meanings?
+        // Form the request to server
+        // Assume different meanings are separated by newline OR comma
+        Request request = new Request("addWord", word, meanings);
+
+        // Send the request in JSON format
+        Response response = null;
+        try {
+            String jsonResponseString = this.clientConnection.sendRequest(request);
+            response = gson.fromJson(jsonResponseString, Response.class);
+        } catch (IOException e) {
+            // Log detailed error info
+            logger.error("An error occured while connecting to server.", e);
+            // Assume connection has been lost
+            response = new Response("fail", "An error occured while connecting to server.");
+        }
+
+        displayResult(response.getResult());
     }
 
     /**
@@ -367,7 +379,8 @@ public class DictionaryClientGUI extends JFrame {
      */
     public static void main(String[] args) {
         // Parse command line arguments
-        // Expected: java DictionaryClient.jar <server-address> <server-port> <sleep-duration>
+        // Expected: java DictionaryClient.jar <server-address> <server-port>
+        // <sleep-duration>
         String serverAddress = new String(args[0]);
         int port = Integer.parseInt(args[1]);
 
@@ -383,17 +396,16 @@ public class DictionaryClientGUI extends JFrame {
                 DictionaryClientGUI gui = new DictionaryClientGUI();
                 gui.setVisible(true);
 
-                // TODO: Initialize socket connection here
+                // Initialize socket connection
                 try {
+                    // NOTE: Uses a new connection for each request
                     ClientConnection clientConnection = new ClientConnection(serverAddress, port);
                     gui.setClientConnection(clientConnection);
-                    // FIXME be able to check if client is connected (?)
-                    gui.setConnectionStatus(true); // Set this when actually connected
+                    gui.setConnectionStatus(true);
                 } catch (IOException e) {
-                    // FIXME use JOPTIONPANE or something else 
-                    System.out.println("FAILED to connect to server");
+                    logger.error("Failed to connect to server", e);
                 }
-                
+
             }
         });
     }
