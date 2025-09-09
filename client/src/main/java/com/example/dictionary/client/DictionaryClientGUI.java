@@ -444,9 +444,8 @@ public class DictionaryClientGUI extends JFrame {
         pingTaskHolder[0] = scheduler.scheduleAtFixedRate(() -> {
             try {
                 clientConnection.pingServer();
-                // if ping succeeds, cancel this task
-                logger.info("Ping successful, stopping scheduled pings.");
-                pingTaskHolder[0].cancel(false); // false = don’t interrupt if running
+                // if ping succeeds, client is connected
+                logger.info("Ping successful.");
                 setConnectionStatus(true);
 
             } catch (IOException e) {
