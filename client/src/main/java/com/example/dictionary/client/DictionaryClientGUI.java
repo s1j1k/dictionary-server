@@ -6,6 +6,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -425,6 +431,33 @@ public class DictionaryClientGUI extends JFrame {
     }
 
     /**
+     * 
+     * Poll the server for connection with ping every 5 sections
+     * 
+     * Connection is recovered when a successful ping happens
+     * This is the only way to go from disconnected -> connected status
+     */
+    private void pingForConnection() {
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        final ScheduledFuture<?>[] pingTaskHolder = new ScheduledFuture<?>[1];
+
+        pingTaskHolder[0] = scheduler.scheduleAtFixedRate(() -> {
+            try {
+                clientConnection.pingServer();
+                // if ping succeeds, cancel this task
+                logger.info("Ping successful, stopping scheduled pings.");
+                pingTaskHolder[0].cancel(false); // false = don’t interrupt if running
+                setConnectionStatus(true);
+
+            } catch (IOException e) {
+                // ping failed, mark as disconnected, keep trying
+                setConnectionStatus(false);
+                logger.info("Ping failed, retrying...");
+            }
+        }, 0, 5, TimeUnit.SECONDS);
+    }
+
+    /**
      * Main method for testing GUI
      * You should modify this to include command line argument parsing
      */
@@ -454,6 +487,8 @@ public class DictionaryClientGUI extends JFrame {
                     gui.setClientConnection(clientConnection);
                     clientConnection.pingServer(); // Raises an exception if failed
                     gui.setConnectionStatus(true);
+                    // Trigger the client to continue to ping for connection
+                    gui.pingForConnection();
                 } catch (IOException e) {
                     logger.error("Failed to connect to server", e);
                 }

@@ -2,6 +2,10 @@ package com.example.dictionary.client;
 
 import java.io.*;
 import java.net.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import com.google.gson.Gson;
@@ -69,5 +73,7 @@ public class ClientConnection {
 
         return response;
     }
+
+    String getHost() {return host;}
 
 }
