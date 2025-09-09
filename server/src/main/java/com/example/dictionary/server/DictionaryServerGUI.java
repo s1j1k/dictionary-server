@@ -6,6 +6,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Layout;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -130,9 +132,8 @@ class ClientHandler implements Runnable {
 
         // Close the connection after each request
         try {
-            this.clientSocket.close();
-            // TODO implement that
-            this.dictionaryServer.decrementNumActiveConnections();
+            clientSocket.close();
+            dictionaryServer.decrementNumActiveConnections();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -154,11 +155,12 @@ public class DictionaryServerGUI extends JFrame {
     private JTextArea logsArea;
 
     // Track the number of active connections
-    private int numActiveConnections;
+    // Use Atomic to make it thread safe
+    private final AtomicInteger numActiveConnections = new AtomicInteger(0);
 
     public DictionaryServerGUI(String intialDictionaryFile) throws SQLException, IOException {
-        this.databaseConnector = new DatabaseConnector(intialDictionaryFile);
-        this.numActiveConnections = 0;
+        // Initialize the dictionary database
+        databaseConnector = new DatabaseConnector(intialDictionaryFile);
 
         initializeGUI();
 
@@ -217,16 +219,6 @@ public class DictionaryServerGUI extends JFrame {
         return panel;
     }
 
-    // private JPanel createLogsPanel() {
-    // JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-    // panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-    // // Add loga panel
-    // panel.add(());
-
-    // return panel;
-    // }
-
     private JPanel createLogsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(new TitledBorder("Operational Logs"));
@@ -242,16 +234,16 @@ public class DictionaryServerGUI extends JFrame {
         return panel;
     }
 
-    void incrementNumActiveConnections() {
+    // Use synchronized to make it thread safe
+    public synchronized void incrementNumActiveConnections() {
         // Increase number of active connections and display it
-        numActiveConnections++;
-        connectionsCountLabel.setText(Integer.toString(this.numActiveConnections));
+        connectionsCountLabel.setText(Integer.toString(numActiveConnections.incrementAndGet()));
     }
 
-    void decrementNumActiveConnections() {
+    // Use synchronized to make it thread safe
+    public synchronized void decrementNumActiveConnections() {
         // Decrease number of active connections and display it
-        numActiveConnections--;
-        connectionsCountLabel.setText(Integer.toString(this.numActiveConnections));
+        connectionsCountLabel.setText(Integer.toString(numActiveConnections.decrementAndGet()));
     }
 
     public static void main(String args[]) throws IOException, SQLException {
@@ -297,14 +289,15 @@ public class DictionaryServerGUI extends JFrame {
                 Thread serverThread = new Thread(() -> {
 
                     ServerSocket serverSocket = null;
+                    ExecutorService threadPool = null;
+
                     try {
 
                         // Register service on the given port
                         serverSocket = new ServerSocket(port);
 
                         // Create a thread pool with MAX_TH number of threads
-                        // FIXME implement graceful exits
-                        ExecutorService threadPool = newFixedThreadPool(MAX_TH);
+                        threadPool = newFixedThreadPool(MAX_TH);
 
                         logger.info("Waiting for client connections...");
 
@@ -313,26 +306,32 @@ public class DictionaryServerGUI extends JFrame {
                             // create a thread and process any input clients requests?
                             Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
                             logger.info("Accepted a connection.");
+                            dictionaryServer.incrementNumActiveConnections();
                             // TODO implement
                             // Increase number of active connections
-                            dictionaryServer.incrementNumActiveConnections();
+                            // FIXME do this from within the client handler
+                            // dictionaryServer.incrementNumActiveConnections();
                             // create a thread to handle this client
                             // FIXME should we just hand in the database connector?
                             Runnable task = new ClientHandler(clientSocket, dictionaryServer);
                             threadPool.execute(task);
-                            // todo make an option to close the application and exit this loop
+                            // TODO make an option to close the application and exit this loop
+                            // TODO allow to close/open server
                         }
-
-                        // FIXME shut it down?
-                        // pool is shutdown
-                        // threadPool.shutdown();
 
                     } catch (
 
                     IOException e) {
                         throw new RuntimeException(e);
                     } finally {
-                        // FIXME close client here also?
+                        try {
+                            if (threadPool != null) {
+                                threadPool.shutdown();
+                            }
+                        } catch (Throwable e) {
+                            // Do nothing
+                            logger.error("An error occurred while closing thread pool.", e);
+                        }
                         try {
                             if (serverSocket != null) {
                                 serverSocket.close();
