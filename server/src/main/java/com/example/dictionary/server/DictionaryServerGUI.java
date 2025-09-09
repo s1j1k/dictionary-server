@@ -49,6 +49,8 @@ class ClientHandler implements Runnable {
         DataInputStream is = null;
         DataOutputStream os = null;
         try {
+            dictionaryServer.incrementNumActiveConnections();
+
             is = new DataInputStream(clientSocket.getInputStream());
             os = new DataOutputStream(clientSocket.getOutputStream());
             String json = is.readUTF();
@@ -57,9 +59,15 @@ class ClientHandler implements Runnable {
             Request request = gson.fromJson(json, Request.class);
             Response response = null;
 
-            // TODO first confirm request is good or wrap in try/catch and a function
-
             switch (request.getCommand()) {
+                case "ping":
+                    try {
+                        response = new Response("success", "Successfully pinged server.");
+                    } catch (Exception e) {
+                        response = new Response("fail", "Error: " + e.getMessage());
+                    }
+                    break;
+
                 case "searchWord":
                     try {
                         response = dictionaryServer.databaseConnector.searchWord(request.getWord());
@@ -115,28 +123,29 @@ class ClientHandler implements Runnable {
             os.writeUTF(jsonResponseString);
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // Don't close the server because of one client's IOException
+            logger.error("An error occurred while handling client.", e);
         } finally {
             // When done, just close the connection and exit
             try {
                 is.close();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                logger.error("An error occurred while closing input stream.", e);
             }
             try {
                 os.close();
+            } catch (IOException e) {
+                logger.error("An error occurred while closing output stream.", e);
+            }
+            // Close the connection after each request
+            try {
+                clientSocket.close();
+                dictionaryServer.decrementNumActiveConnections();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
 
-        // Close the connection after each request
-        try {
-            clientSocket.close();
-            dictionaryServer.decrementNumActiveConnections();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
 
@@ -306,7 +315,7 @@ public class DictionaryServerGUI extends JFrame {
                             // create a thread and process any input clients requests?
                             Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
                             logger.info("Accepted a connection.");
-                            dictionaryServer.incrementNumActiveConnections();
+                            // NOTE do not increment number of active connections yet
                             // TODO implement
                             // Increase number of active connections
                             // FIXME do this from within the client handler

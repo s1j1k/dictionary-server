@@ -24,7 +24,7 @@
                   <resource>META-INF/services/java.sql.Driver</resource>
                 </transformer>
                 <transformer>
-                  <mainClass>com.example.dictionary.server.DictionaryServer</mainClass>
+                  <mainClass>com.example.dictionary.server.DictionaryServerGUI</mainClass>
                 </transformer>
               </transformers>
             </configuration>
@@ -37,7 +37,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>com.example.dictionary.server.DictionaryServer</mainClass>
+              <mainClass>com.example.dictionary.server.DictionaryServerGUI</mainClass>
             </manifest>
           </archive>
         </configuration>

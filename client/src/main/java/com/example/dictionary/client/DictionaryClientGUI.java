@@ -452,6 +452,7 @@ public class DictionaryClientGUI extends JFrame {
                     // NOTE: Uses a new connection for each request
                     ClientConnection clientConnection = new ClientConnection(serverAddress, port);
                     gui.setClientConnection(clientConnection);
+                    clientConnection.pingServer(); // Raises an exception if failed
                     gui.setConnectionStatus(true);
                 } catch (IOException e) {
                     logger.error("Failed to connect to server", e);

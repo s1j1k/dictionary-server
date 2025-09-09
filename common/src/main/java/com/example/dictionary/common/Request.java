@@ -11,6 +11,11 @@ public class Request {
     public Request() {
     }
 
+    // Ping request type
+    public Request(String command) {
+        this.command = command;
+    }
+
     public Request(String command, String word) {
         this.command = command;
         this.word = word;
@@ -19,11 +24,11 @@ public class Request {
     public Request(String command, String word, String meanings) {
         this(command, word);
 
-        if (command == "addMeaning") {
+        if ("addMeaning".equals(command)) {
             this.newMeaning = meanings;
         }
 
-        if (command == "addWord") {
+        if ("addWord".equals(command)) {
             this.meanings = meanings;
         }
     }
