@@ -27,158 +27,41 @@ import java.awt.event.ActionListener;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Filter;
 
-// TODO server gui
-//class DictionaryMonitor {}
-// TODO rename to server gui
-
-class ClientHandler implements Runnable {
-    private Socket clientSocket;
-    private DictionaryServerGUI dictionaryServer;
-
-    private static Logger logger = LogManager.getLogger(ClientHandler.class);
-
-    Gson gson = new Gson();
-
-    public ClientHandler(Socket clientSocket, DictionaryServerGUI dictionaryServer) {
-        this.clientSocket = clientSocket;
-        this.dictionaryServer = dictionaryServer;
-    }
-
-    public void run() throws RuntimeException {
-        // Get a communication stream associated with the socket
-        DataInputStream is = null;
-        DataOutputStream os = null;
-        try {
-            dictionaryServer.incrementNumActiveConnections();
-
-            is = new DataInputStream(clientSocket.getInputStream());
-            os = new DataOutputStream(clientSocket.getOutputStream());
-            String json = is.readUTF();
-            logger.info("Server received request: " + json);
-
-            Request request = gson.fromJson(json, Request.class);
-            Response response = null;
-
-            switch (request.getCommand()) {
-                case "ping":
-                    try {
-                        response = new Response("success", "Successfully pinged server.");
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                case "searchWord":
-                    try {
-                        response = dictionaryServer.databaseConnector.searchWord(request.getWord());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                case "addWord":
-                    try {
-                        response = dictionaryServer.databaseConnector.addWord(request.getWord(), request.getMeanings());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                case "removeWord":
-                    try {
-                        response = dictionaryServer.databaseConnector.removeWord(request.getWord());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                case "addMeaning":
-                    try {
-                        response = dictionaryServer.databaseConnector.addMeaning(request.getWord(),
-                                request.getNewMeaning());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                case "updateMeaning":
-                    try {
-                        response = dictionaryServer.databaseConnector.updateMeaning(request.getWord(),
-                                request.getOldMeaning(), request.getNewMeaning());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                default:
-                    logger.info("Invalid request command received");
-                    response = new Response("fail", "Invalid request command received");
-            }
-
-            // Send back the response
-            if (response == null) {
-                response = new Response("fail", "Failed to form response");
-            }
-            String jsonResponseString = gson.toJson(response);
-            os.writeUTF(jsonResponseString);
-
-        } catch (IOException e) {
-            // Don't close the server because of one client's IOException
-            logger.error("An error occurred while handling client.", e);
-        } finally {
-            // When done, just close the connection and exit
-            try {
-                is.close();
-            } catch (IOException e) {
-                logger.error("An error occurred while closing input stream.", e);
-            }
-            try {
-                os.close();
-            } catch (IOException e) {
-                logger.error("An error occurred while closing output stream.", e);
-            }
-            // Close the connection after each request
-            try {
-                clientSocket.close();
-                dictionaryServer.decrementNumActiveConnections();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-    }
-}
-
 public class DictionaryServerGUI extends JFrame {
-
-    DatabaseConnector databaseConnector;
-
     // Logger configuration
     private static Logger logger = LogManager.getLogger(DictionaryServerGUI.class);
-
-    // Maximum number of threads in the thread pool
-    static final int MAX_TH = 10;
 
     // GUI Components
     private JLabel connectionsCountLabel;
     private JTextArea logsArea;
+    private JButton startButton;
+    private JButton stopButton;
+    private JLabel statusIndicator;
+    private JLabel connectionsLabel;
 
-    // Track the number of active connections
-    // Use Atomic to make it thread safe
-    private final AtomicInteger numActiveConnections = new AtomicInteger(0);
+    // Server logic
+    int port;
+    DictionaryServer dictionaryServer;
 
-    public DictionaryServerGUI(String intialDictionaryFile) throws SQLException, IOException {
-        // Initialize the dictionary database
-        databaseConnector = new DatabaseConnector(intialDictionaryFile);
-
+    public DictionaryServerGUI(int port, String initialDictionaryFile) throws SQLException, IOException {
         initializeGUI();
 
-        // Start the GUI appender for Operational logs panel (GUI must be initialized
-        // first)
-        // GUI appender logger configuration
         initializeGuiAppender();
+
+        this.port = port;
+
+        // Initialize dictionary server
+        // FIXME implement connection count logic
+        // TODO test if this works
+        dictionaryServer = new DictionaryServer(initialDictionaryFile);
+        dictionaryServer.setConnectionListener(count -> SwingUtilities
+                .invokeLater(() -> connectionsCountLabel.setText(String.valueOf(count))));
     }
 
+    /**
+     * Create an custom appender to allow operational logs to be printed to the GUI
+     * GUI must be initialized first
+     */
     private void initializeGuiAppender() {
         Layout<? extends Serializable> layout = PatternLayout.newBuilder()
                 .withPattern("[%d{HH:mm:ss}] %-5level: %msg%n")
@@ -196,33 +79,57 @@ public class DictionaryServerGUI extends JFrame {
         coreLogger.addAppender(guiAppender);
     }
 
-    public JTextArea getLogsArea() {
-        return this.logsArea;
-    }
-
-    // TODO show the number of active connections, operational logs, server
-    // start/stop
     private void initializeGUI() {
         setTitle("Dictionary Server");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         // Create main panels
-        add(createActiveConnectionsPanel(), BorderLayout.NORTH);
+        add(createConnectionsPanel(), BorderLayout.NORTH);
         add(createLogsPanel(), BorderLayout.CENTER);
-        // add(createStartStopPanel(), BorderLayout.SOUTH);
 
         pack();
         setLocationRelativeTo(null);
         setResizable(true);
     }
 
-    private JPanel createActiveConnectionsPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panel.setBorder(new TitledBorder("Active Connections"));
+    private JPanel createConnectionsPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        panel.setBorder(new TitledBorder("Server Control"));
 
+        // Start button
+        startButton = new JButton("Start");
+        // FIXME implement stop/start server
+        startButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                startServer();
+            }
+        });
+
+        // Stop button
+        stopButton = new JButton("Stop");
+        stopButton.setEnabled(false); // Initially disabled
+        stopButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                stopServer(); // FIXME implement this
+            }
+        });
+
+        // Status indicator (a colored circle using Unicode)
+        statusIndicator = new JLabel("●");
+        statusIndicator.setForeground(Color.RED); // Red = stopped initially
+
+        // Active connections count
+        connectionsLabel = new JLabel("Active Connections: ");
         connectionsCountLabel = new JLabel("0");
-        // statusLabel.setForeground(Color.RED);
+
+        // Add components to panel in order
+        panel.add(startButton);
+        panel.add(stopButton);
+        panel.add(statusIndicator);
+        panel.add(connectionsLabel);
         panel.add(connectionsCountLabel);
 
         return panel;
@@ -243,22 +150,40 @@ public class DictionaryServerGUI extends JFrame {
         return panel;
     }
 
-    // Use synchronized to make it thread safe
-    public synchronized void incrementNumActiveConnections() {
-        // Increase number of active connections and display it
-        connectionsCountLabel.setText(Integer.toString(numActiveConnections.incrementAndGet()));
+    // TODO verify that the server is running (?) and update in case we get a crash
+    // from the server's end
+    // FIXME allow server crash from server end to change UI to off mode
+    public void startServer() {
+        dictionaryServer.start(port);
+        statusIndicator.setForeground(Color.GREEN);
+        startButton.setEnabled(false);
+        stopButton.setEnabled(true);
     }
 
-    // Use synchronized to make it thread safe
-    public synchronized void decrementNumActiveConnections() {
-        // Decrease number of active connections and display it
-        connectionsCountLabel.setText(Integer.toString(numActiveConnections.decrementAndGet()));
+    public void stopServer() {
+        dictionaryServer.stop();
+        statusIndicator.setForeground(Color.RED);
+        startButton.setEnabled(true);
+        stopButton.setEnabled(false);
     }
+
+    // // Use synchronized to make it thread safe
+    // // FIXME check if this should be implemented from server side
+    // public synchronized void incrementNumActiveConnections() {
+    // // Increase number of active connections and display it
+    // connectionsCountLabel.setText(Integer.toString(dictionaryServer.incrementAndGetNumActiveConnections()));
+    // }
+
+    // // Use synchronized to make it thread safe
+    // public synchronized void decrementNumActiveConnections() {
+    // // Decrease number of active connections and display it
+    // connectionsCountLabel.setText(Integer.toString(dictionaryServer.incrementAndGetNumActiveConnections()));
+    // }
 
     public static void main(String args[]) throws IOException, SQLException {
         // Parse command line arguments
-        int port;
         String initialDictionaryFile;
+        int port;
         try {
             port = Integer.parseInt(args[0]);
             initialDictionaryFile = args[1];
@@ -268,12 +193,12 @@ public class DictionaryServerGUI extends JFrame {
         }
 
         // Initialize and display the GUI
-        // Initialize GUI
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
                 // Build GUI on EDT
-                DictionaryServerGUI dictionaryServer;
+                DictionaryServerGUI gui;
+
                 try {
                     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
                 } catch (Exception e) {
@@ -281,78 +206,14 @@ public class DictionaryServerGUI extends JFrame {
                 }
 
                 try {
-
-                    // initialize dictionary server gui
-
-                    dictionaryServer = new DictionaryServerGUI(initialDictionaryFile);
-                    dictionaryServer.setVisible(true);
-
+                    gui = new DictionaryServerGUI(port, initialDictionaryFile);
+                    gui.setVisible(true);
                     logger.info("Dictionary server initialized!");
-                    logger.info("Initial list of words:\n" + dictionaryServer.databaseConnector.getListOfWords());
+                    logger.debug("Initial list of words:\n" + gui.dictionaryServer.databaseConnector.getListOfWords());
                 } catch (Throwable e) {
                     logger.error("An error occurred while initializing server", e);
                     throw new RuntimeException(e);
                 }
-
-                // Launch server socket in another thread so it doesn't block GUI
-                Thread serverThread = new Thread(() -> {
-
-                    ServerSocket serverSocket = null;
-                    ExecutorService threadPool = null;
-
-                    try {
-
-                        // Register service on the given port
-                        serverSocket = new ServerSocket(port);
-
-                        // Create a thread pool with MAX_TH number of threads
-                        threadPool = newFixedThreadPool(MAX_TH);
-
-                        logger.info("Waiting for client connections...");
-
-                        // accept multiple connections and use multiple threads
-                        while (true) {
-                            // create a thread and process any input clients requests?
-                            Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
-                            logger.info("Accepted a connection.");
-                            // NOTE do not increment number of active connections yet
-                            // TODO implement
-                            // Increase number of active connections
-                            // FIXME do this from within the client handler
-                            // dictionaryServer.incrementNumActiveConnections();
-                            // create a thread to handle this client
-                            // FIXME should we just hand in the database connector?
-                            Runnable task = new ClientHandler(clientSocket, dictionaryServer);
-                            threadPool.execute(task);
-                            // TODO make an option to close the application and exit this loop
-                            // TODO allow to close/open server
-                        }
-
-                    } catch (
-
-                    IOException e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        try {
-                            if (threadPool != null) {
-                                threadPool.shutdown();
-                            }
-                        } catch (Throwable e) {
-                            // Do nothing
-                            logger.error("An error occurred while closing thread pool.", e);
-                        }
-                        try {
-                            if (serverSocket != null) {
-                                serverSocket.close();
-                            }
-
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                });
-                serverThread.start(); // Launches in background
-
             }
         });
 
