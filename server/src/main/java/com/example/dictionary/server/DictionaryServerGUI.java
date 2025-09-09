@@ -8,18 +8,20 @@ import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Layout;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.filter.ThresholdFilter;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.LogManager;
 import com.example.dictionary.common.Request;
 import com.example.dictionary.common.Response;
 import com.google.gson.Gson;
+
+import javax.management.RuntimeErrorException;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import org.apache.logging.log4j.core.filter.ThresholdFilter;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Filter;
 
@@ -154,19 +156,27 @@ public class DictionaryServerGUI extends JFrame {
     // Track the number of active connections
     private int numActiveConnections;
 
-    // GUI appender logger configuration
-    Layout<? extends Serializable> layout = PatternLayout.newBuilder().withPattern("[%d{HH:mm:ss}] %-5level: %msg%n")
-            .build();
-    Filter filter = ThresholdFilter.createFilter(Level.INFO, Filter.Result.ACCEPT, Filter.Result.DENY);
-
-    // Build and start the appender
-    GuiAppender guiAppender = new GuiAppender("GuiAppender", filter, layout, true, logsArea);
-
     public DictionaryServerGUI(String intialDictionaryFile) throws SQLException, IOException {
         this.databaseConnector = new DatabaseConnector(intialDictionaryFile);
         this.numActiveConnections = 0;
 
-        // Start the GUI appender
+        initializeGUI();
+
+        // Start the GUI appender for Operational logs panel (GUI must be initialized
+        // first)
+        // GUI appender logger configuration
+        initializeGuiAppender();
+    }
+
+    private void initializeGuiAppender() {
+        Layout<? extends Serializable> layout = PatternLayout.newBuilder()
+                .withPattern("[%d{HH:mm:ss}] %-5level: %msg%n")
+                .build();
+        Filter filter = ThresholdFilter.createFilter(Level.INFO, Filter.Result.ACCEPT, Filter.Result.DENY);
+
+        // Build the appender
+        GuiAppender guiAppender = new GuiAppender("GuiAppender", filter, layout, true, logsArea);
+
         guiAppender.start();
 
         // Attach it to the root logger so it receives the same events
@@ -189,7 +199,7 @@ public class DictionaryServerGUI extends JFrame {
         // Create main panels
         add(createActiveConnectionsPanel(), BorderLayout.NORTH);
         add(createLogsPanel(), BorderLayout.CENTER);
-        add(createStartStopPanel(), BorderLayout.SOUTH);
+        // add(createStartStopPanel(), BorderLayout.SOUTH);
 
         pack();
         setLocationRelativeTo(null);
@@ -234,76 +244,109 @@ public class DictionaryServerGUI extends JFrame {
 
     void incrementNumActiveConnections() {
         // Increase number of active connections and display it
-        this.numActiveConnections++;
+        numActiveConnections++;
         connectionsCountLabel.setText(Integer.toString(this.numActiveConnections));
     }
 
     void decrementNumActiveConnections() {
         // Decrease number of active connections and display it
-        this.numActiveConnections--;
+        numActiveConnections--;
         connectionsCountLabel.setText(Integer.toString(this.numActiveConnections));
     }
 
     public static void main(String args[]) throws IOException, SQLException {
-
-        ServerSocket serverSocket = null;
+        // Parse command line arguments
+        int port;
+        String initialDictionaryFile;
         try {
-            // TODO proper error handling for missing arguments here
-            int port = Integer.parseInt(args[0]);
-            String initialDictionaryFile = args[1];
-
-            // initialize dictionary server
-            // FIXME does it even make sense to instantiate oneself during main fil
-            // execution?
-            DictionaryServerGUI dictionaryServer = new DictionaryServerGUI(initialDictionaryFile);
-
-            // FIXME remove - for debugging
-            // TODO convert to like a test
-            // Print the word list
-            // TODO proper logging
-            logger.info("Dictionary server initialized!");
-            logger.info("Initial list of words:\n" + dictionaryServer.databaseConnector.getListOfWords());
-
-            // Register service on the given port
-            serverSocket = new ServerSocket(port);
-
-            // creating a thread pool with MAX_TH number of threads
-            ExecutorService threadPool = newFixedThreadPool(MAX_TH);
-
-            logger.info("Waiting for client connections...");
-
-            // accept multiple connections and use multiple threads
-            while (true) {
-                // create a thread and process any input clients requests?
-                Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
-                logger.info("Accepted a connection.");
-                // TODO implement
-                // Increase number of active connections
-                dictionaryServer.incrementNumActiveConnections();
-                // create a thread to handle this client
-                // FIXME should we just hand in the database connector?
-                Runnable task = new ClientHandler(clientSocket, dictionaryServer);
-                threadPool.execute(task);
-                // todo make an option to close the application and exit this loop
-            }
-
-            // FIXME shut it down?
-            // pool is shutdown
-            // threadPool.shutdown();
-
-        } catch (IOException e) {
+            port = Integer.parseInt(args[0]);
+            initialDictionaryFile = args[1];
+        } catch (Throwable e) {
+            logger.error("An error occurred while parsing command line arguments.", e);
             throw new RuntimeException(e);
-        } finally {
-            // FIXME close client here also?
-            try {
-                if (serverSocket != null) {
-                    serverSocket.close();
+        }
+
+        // Initialize and display the GUI
+        // Initialize GUI
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                // Build GUI on EDT
+                DictionaryServerGUI dictionaryServer;
+                try {
+                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                } catch (Exception e) {
+                    // Will use default look and feel
                 }
 
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                try {
+
+                    // initialize dictionary server gui
+
+                    dictionaryServer = new DictionaryServerGUI(initialDictionaryFile);
+                    dictionaryServer.setVisible(true);
+
+                    logger.info("Dictionary server initialized!");
+                    logger.info("Initial list of words:\n" + dictionaryServer.databaseConnector.getListOfWords());
+                } catch (Throwable e) {
+                    logger.error("An error occurred while initializing server", e);
+                    throw new RuntimeException(e);
+                }
+
+                // Launch server socket in another thread so it doesn't block GUI
+                Thread serverThread = new Thread(() -> {
+
+                    ServerSocket serverSocket = null;
+                    try {
+
+                        // Register service on the given port
+                        serverSocket = new ServerSocket(port);
+
+                        // Create a thread pool with MAX_TH number of threads
+                        // FIXME implement graceful exits
+                        ExecutorService threadPool = newFixedThreadPool(MAX_TH);
+
+                        logger.info("Waiting for client connections...");
+
+                        // accept multiple connections and use multiple threads
+                        while (true) {
+                            // create a thread and process any input clients requests?
+                            Socket clientSocket = serverSocket.accept(); // Wait and accept a connection
+                            logger.info("Accepted a connection.");
+                            // TODO implement
+                            // Increase number of active connections
+                            dictionaryServer.incrementNumActiveConnections();
+                            // create a thread to handle this client
+                            // FIXME should we just hand in the database connector?
+                            Runnable task = new ClientHandler(clientSocket, dictionaryServer);
+                            threadPool.execute(task);
+                            // todo make an option to close the application and exit this loop
+                        }
+
+                        // FIXME shut it down?
+                        // pool is shutdown
+                        // threadPool.shutdown();
+
+                    } catch (
+
+                    IOException e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        // FIXME close client here also?
+                        try {
+                            if (serverSocket != null) {
+                                serverSocket.close();
+                            }
+
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+                serverThread.start(); // Launches in background
+
             }
-        }
+        });
 
     }
 }

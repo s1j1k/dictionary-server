@@ -66,7 +66,7 @@
                 </transformer>
                 <!-- Set the Main-Class in MANIFEST.MF -->
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.example.dictionary.server.DictionaryServer</mainClass>
+                  <mainClass>com.example.dictionary.server.DictionaryServerGUI</mainClass>
                 </transformer>
               </transformers>
             </configuration>
@@ -82,7 +82,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>com.example.dictionary.server.DictionaryServer</mainClass>
+              <mainClass>com.example.dictionary.server.DictionaryServerGUI</mainClass>
             </manifest>
           </archive>
         </configuration>
