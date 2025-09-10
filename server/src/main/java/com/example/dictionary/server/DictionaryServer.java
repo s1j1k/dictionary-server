@@ -95,7 +95,6 @@ public class DictionaryServer {
                     Socket clientSocket = serverSocket.accept();
                     logger.info("Accepted a connection!");
                     threadPool.execute(new ClientHandler(clientSocket, this));
-                    // FIXME increment number of actual connections in GUI
                 }
             } catch (IOException e) {
                 // Ignore socket errors when server is shut down

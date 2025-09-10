@@ -14,7 +14,7 @@ import com.google.gson.Gson;
 
 /**
  * ~ Client Handler Class ~
- * Handles each request as a thread
+ * Handles each connection as a thread
  *
  * @author Sally Arnold
  *         Student ID: 992316
@@ -23,7 +23,6 @@ public class ClientHandler implements Runnable {
     private Socket clientSocket;
     private DictionaryServer dictionaryServer;
 
-    // FIXME make this write to the server GUI?
     private static Logger logger = LogManager.getLogger(ClientHandler.class);
 
     Gson gson = new Gson();

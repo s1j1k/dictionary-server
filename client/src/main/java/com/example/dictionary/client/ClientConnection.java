@@ -22,7 +22,7 @@ import com.example.dictionary.common.Response;
 public class ClientConnection {
     private String host;
     private int port;
-    private Socket socket; // FIXME do we need to allow closing / reopening the socket
+    private Socket socket;
     private DataOutputStream os;
     private DataInputStream is;
 

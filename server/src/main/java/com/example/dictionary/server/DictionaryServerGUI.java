@@ -1,24 +1,12 @@
 package com.example.dictionary.server;
 
-import static java.util.concurrent.Executors.newFixedThreadPool;
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.sql.SQLException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Layout;
-import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.filter.ThresholdFilter;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.LogManager;
-import com.example.dictionary.common.Request;
-import com.example.dictionary.common.Response;
-import com.google.gson.Gson;
-
-import javax.management.RuntimeErrorException;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
@@ -52,7 +40,6 @@ public class DictionaryServerGUI extends JFrame {
     int port;
     DictionaryServer dictionaryServer;
 
-
     public DictionaryServerGUI(int port, String initialDictionaryFile) throws SQLException, IOException {
         initializeGUI();
 
@@ -61,8 +48,6 @@ public class DictionaryServerGUI extends JFrame {
         this.port = port;
 
         // Initialize dictionary server
-        // FIXME implement connection count logic
-        // TODO test if this works
         dictionaryServer = new DictionaryServer(initialDictionaryFile);
         // Add connections label as an observer to count of active connections
         dictionaryServer.addConnectionListener(newCount -> {
@@ -113,7 +98,7 @@ public class DictionaryServerGUI extends JFrame {
 
         // Start button
         startButton = new JButton("Start");
-        // FIXME implement stop/start server
+
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -123,17 +108,17 @@ public class DictionaryServerGUI extends JFrame {
 
         // Stop button
         stopButton = new JButton("Stop");
-        stopButton.setEnabled(false); // Initially disabled
+        stopButton.setEnabled(false); 
         stopButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                stopServer(); // FIXME implement this
+                stopServer(); 
             }
         });
 
         // Status indicator (a colored circle using Unicode)
         statusIndicator = new JLabel("●");
-        statusIndicator.setForeground(Color.RED); // Red = stopped initially
+        statusIndicator.setForeground(Color.RED);
 
         // Active connections count
         connectionsLabel = new JLabel("Active Connections: ");
@@ -164,9 +149,6 @@ public class DictionaryServerGUI extends JFrame {
         return panel;
     }
 
-    // TODO verify that the server is running (?) and update in case we get a crash
-    // from the server's end
-    // FIXME allow server crash from server end to change UI to off mode
     public void startServer() {
         dictionaryServer.start(port);
         statusIndicator.setForeground(Color.GREEN);
@@ -180,19 +162,6 @@ public class DictionaryServerGUI extends JFrame {
         startButton.setEnabled(true);
         stopButton.setEnabled(false);
     }
-
-    // // Use synchronized to make it thread safe
-    // // FIXME check if this should be implemented from server side
-    // public synchronized void incrementNumActiveConnections() {
-    // // Increase number of active connections and display it
-    // connectionsCountLabel.setText(Integer.toString(dictionaryServer.incrementAndGetNumActiveConnections()));
-    // }
-
-    // // Use synchronized to make it thread safe
-    // public synchronized void decrementNumActiveConnections() {
-    // // Decrease number of active connections and display it
-    // connectionsCountLabel.setText(Integer.toString(dictionaryServer.incrementAndGetNumActiveConnections()));
-    // }
 
     public static void main(String args[]) throws IOException, SQLException {
         // Parse command line arguments

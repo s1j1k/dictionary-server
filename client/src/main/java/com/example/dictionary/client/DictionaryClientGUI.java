@@ -356,9 +356,6 @@ public class DictionaryClientGUI extends JFrame {
             String jsonResponseString = this.clientConnection.sendRequest(request);
             response = gson.fromJson(jsonResponseString, Response.class);
         } catch (IOException e) {
-            // Log detailed error info
-            // TODO print different info?
-            // FIXME do something different if the error is different?
             logger.error("An error occured while connecting to server.", e);
             // Assume connection has been lost
             response = new Response("fail", "An error occured while connecting to server.");
@@ -435,7 +432,7 @@ public class DictionaryClientGUI extends JFrame {
      * Poll the server for connection with ping every 5 sections
      * 
      * Connection is recovered when a successful ping happens
-     * This is the only way to go from disconnected -> connected status
+     * This is the only way to go from disconnected to connected status
      */
     private void pingForConnection() {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -467,7 +464,6 @@ public class DictionaryClientGUI extends JFrame {
         // <sleep-duration>
         String serverAddress = new String(args[0]);
         int port = Integer.parseInt(args[1]);
-        // FIXME handle missing command line arguments
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
