@@ -3,6 +3,7 @@ package com.example.dictionary.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,6 +46,7 @@ public class DictionaryServer {
 
     // callback for GUI to listen to connection updates
     private Consumer<Integer> connectionListener;
+
     public void setConnectionListener(Consumer<Integer> listener) {
         this.connectionListener = listener;
     }
@@ -57,6 +59,7 @@ public class DictionaryServer {
 
     /**
      * Start the server on the given port
+     * 
      * @param port
      */
     public void start(int port) {
@@ -64,6 +67,7 @@ public class DictionaryServer {
             return; // already running
         }
         running = true;
+        logger.info("Starting server...");
         serverThread = new Thread(() -> {
             try {
                 // Register service on the given port
@@ -74,15 +78,19 @@ public class DictionaryServer {
 
                 while (running) {
                     Socket clientSocket = serverSocket.accept();
+                    logger.info("Accepted a connection!");
                     threadPool.execute(new ClientHandler(clientSocket, this));
                     // FIXME increment number of actual connections in GUI
                 }
             } catch (IOException e) {
-                // Log the error
-                logger.error("An error occurred while connecting to client.", e);
+                // Ignore socket errors when server is shut down
+                if (running) {
+                    // Log the error
+                    logger.error("An error occurred while connecting to client.", e);
+                }
             } finally {
                 // Clean shutdown if loop exits
-                stop(); 
+                stop();
             }
         });
         // Try to launch the thread again if we exited our loop
@@ -96,10 +104,9 @@ public class DictionaryServer {
                 serverSocket.close();
             }
         } catch (IOException ignored) {
-        }
-        if (threadPool != null) {
-            threadPool.shutdown();
+            if (threadPool != null) {
+                threadPool.shutdown();
+            }
         }
     }
-
 }
