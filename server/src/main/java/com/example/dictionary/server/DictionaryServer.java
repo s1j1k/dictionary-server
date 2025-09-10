@@ -81,8 +81,8 @@ public class DictionaryServer {
         if (serverThread != null && serverThread.isAlive()) {
             return; // already running
         }
-        running = true;
         logger.info("Starting server...");
+        running = true;
         serverThread = new Thread(() -> {
             try {
                 // Register service on the given port
@@ -108,16 +108,15 @@ public class DictionaryServer {
                 stop();
             }
         });
-        // FIXME if one client quits it doesn't affect all clients
-        // Try to launch the thread again if we exited our loop while still running
-        // FIXME is this not thread safe or something?
         if (running) {
             serverThread.start();
         }
     }
 
     public void stop() {
-        // FIXME change num active connections to none when server drops out
+        logger.info("Stopping server...");
+        // NOTE: existing connections will remain connected. 
+        // New connections will be refused.
         running = false;
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {

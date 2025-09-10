@@ -34,8 +34,6 @@ public class ClientConnection {
     public ClientConnection(String host, int port) throws IOException {
         this.host = host;
         this.port = port;
-        // FIXME this causes initialization to fail if server isn't connected
-        // initialize();
     }
 
     private void initialize() throws UnknownHostException, IOException {
