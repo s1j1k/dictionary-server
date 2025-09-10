@@ -6,7 +6,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -15,19 +14,18 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-// FIXME should we use Request 2 times or just in the client connection class?
 import com.example.dictionary.common.Request;
 import com.example.dictionary.common.Response;
 import com.google.gson.Gson;
 
 /**
- * ~ Dictionary Client GUI Skeleton ~
+ * ~ Dictionary Client GUI From Provided Skeleton ~
  * This is a basic GUI for the Dictionary Client.
- * You need to integrate this with your socket communication and
+ * Integrated this with socket communication and
  * protocol implementation.
  *
- * @author [Student Name]
- *         Student ID: [Student ID]
+ * @author Sally Arnold
+ *         Student ID: 992316
  */
 public class DictionaryClientGUI extends JFrame {
 
@@ -47,7 +45,7 @@ public class DictionaryClientGUI extends JFrame {
     // Gson for converting between objects and JSON strings
     Gson gson = new Gson();
 
-    // Connection status
+    // Connection status - initially disconnected
     private boolean isConnected = false;
 
     // Connection to server
@@ -359,6 +357,8 @@ public class DictionaryClientGUI extends JFrame {
             response = gson.fromJson(jsonResponseString, Response.class);
         } catch (IOException e) {
             // Log detailed error info
+            // TODO print different info? 
+            // FIXME do something different if the error is different?
             logger.error("An error occured while connecting to server.", e);
             // Assume connection has been lost
             response = new Response("fail", "An error occured while connecting to server.");
@@ -445,7 +445,7 @@ public class DictionaryClientGUI extends JFrame {
             try {
                 clientConnection.pingServer();
                 // if ping succeeds, client is connected
-                logger.info("Ping successful.");
+                logger.info("Ping successful. Client is connected!");
                 setConnectionStatus(true);
 
             } catch (IOException e) {
@@ -481,16 +481,21 @@ public class DictionaryClientGUI extends JFrame {
 
                 // Initialize socket connection
                 try {
+                    // Initialize client connection
                     // NOTE: Uses a new connection for each request
                     ClientConnection clientConnection = new ClientConnection(serverAddress, port);
+                    // TODO OPEN ONE PORT FOR THE WHOLE INTERACTION
                     gui.setClientConnection(clientConnection);
-                    clientConnection.pingServer(); // Raises an exception if failed
-                    gui.setConnectionStatus(true);
-                    // Trigger the client to continue to ping for connection
+                    // Trigger the client to continually ping server for connection status
                     gui.pingForConnection();
                 } catch (IOException e) {
-                    logger.error("Failed to connect to server", e);
+                    logger.error("Failed to initialize client.", e);
                 }
+                finally {
+// FIXME graceful exit (do we need the client connection to be closed here)
+        gui.clientConnection.close();
+                }
+                
 
             }
         });

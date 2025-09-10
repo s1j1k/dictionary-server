@@ -5,6 +5,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,6 +15,13 @@ import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * ~ Dictionary Server Class ~
+ * Handles backend server socket communication.
+ * 
+ * @author Sally Arnold
+ *         Student ID: 992316
+ */
 public class DictionaryServer {
 
     DatabaseConnector databaseConnector;
@@ -36,25 +45,33 @@ public class DictionaryServer {
         databaseConnector = new DatabaseConnector(intialDictionaryFile);
     }
 
-    public int incrementAndGetNumActiveConnections() {
-        return numActiveConnections.incrementAndGet();
+    // Logic to pass number of active connections to the GUI
+    // Observer pattern
+    public interface ConnectionListener {
+        void onConnectionCountChanged(int newCount);
     }
 
-    public int decremenAndGettNumActiveConnections() {
-        return numActiveConnections.decrementAndGet();
+    private final List<ConnectionListener> listeners = new ArrayList<>();
+
+    public void addConnectionListener(ConnectionListener listener) {
+        listeners.add(listener);
     }
 
-    // callback for GUI to listen to connection updates
-    private Consumer<Integer> connectionListener;
-
-    public void setConnectionListener(Consumer<Integer> listener) {
-        this.connectionListener = listener;
-    }
-
-    private void notifyConnections(int count) {
-        if (connectionListener != null) {
-            connectionListener.accept(count);
+    private void notifyGui() {
+        int count = numActiveConnections.get();
+        for (ConnectionListener l : listeners) {
+            l.onConnectionCountChanged(count);
         }
+    }
+
+    public void incrementNumActiveConnections() {
+        numActiveConnections.incrementAndGet();
+        notifyGui();
+    }
+
+    public void decrementNumActiveConnections() {
+        numActiveConnections.decrementAndGet();
+        notifyGui();
     }
 
     /**

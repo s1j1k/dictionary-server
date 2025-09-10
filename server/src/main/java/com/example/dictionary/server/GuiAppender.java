@@ -9,7 +9,15 @@ import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import java.io.Serializable;
 
-// Custom GUI Appender
+
+/**
+ * ~ Custom GUI Appender Class ~
+ * This is a custom GUI appender that allows the 
+ * server log4j2 logger to print to the GUI logs area.
+ *
+ * @author Sally Arnold
+ *         Student ID: 992316
+ */
 public class GuiAppender extends AbstractAppender {
 
     private JTextArea logDisplayArea; // Reference to your JTextArea

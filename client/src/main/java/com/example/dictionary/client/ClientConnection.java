@@ -2,9 +2,6 @@ package com.example.dictionary.client;
 
 import java.io.*;
 import java.net.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -13,12 +10,22 @@ import com.google.gson.Gson;
 import com.example.dictionary.common.Request;
 import com.example.dictionary.common.Response;
 
-// FIXME add my name here etc.
-// NOTE this could just be a function in clientGUI but it allows for extension to a reused connection
+/**
+ * Client Connection class
+ * Provides a persistent socket connection
+ *  to be used for all messages with the server
+ *
+ * @author Sally Arnold
+ *         Student ID: 992316
+ */
 
 public class ClientConnection {
     private String host;
     private int port;
+    private Socket socket; // FIXME do we need to allow closing / reopening the socket
+    private DataOutputStream os;
+    private DataInputStream is;
+
     Gson gson = new Gson();
 
     // Logger
@@ -29,18 +36,18 @@ public class ClientConnection {
         this.port = port;
     }
 
-    // TODO handle different types of errors here separately
     /**
      * Ping the server and raise an exception if it doesn't respond
      * 
-     * @throws IOException
-     * @throws UnknownHostException
+     * @throws IOException - if the connection to server was unsuccessful
      */
-    public void pingServer() throws UnknownHostException, IOException {
-        // Confirm connection is working fine
-        Request request = new Request("ping");
+    public void pingServer() throws IOException {
+        socket = new Socket(host, port);
+        os = new DataOutputStream(socket.getOutputStream());
+        is = new DataInputStream(socket.getInputStream());
 
-        // Send the request in JSON format
+        // Send a ping request to server
+        Request request = new Request("ping");
         Response response = null;
         try {
             String jsonResponseString = sendRequest(request);
@@ -49,31 +56,54 @@ public class ClientConnection {
                 throw new IOException("Did not receive success status from server.");
             }
         } catch (IOException e) {
-            // Throw an exception
+            // Throw an exception to be handled in overarching continuous ping thread
             throw new IOException(e);
-        } 
+        } finally {
+            // If failed, discard the socket and its streams
+            close();
+        }
     }
 
     public String sendRequest(Request req) throws IOException {
-        // Create a new connection for each request
-        Socket socket = new Socket(host, port);
-        DataOutputStream os = new DataOutputStream(socket.getOutputStream());
-        DataInputStream is = new DataInputStream(socket.getInputStream());
-
         // Send request to server in JSON format
         String json = gson.toJson(req);
         os.writeUTF(json);
+        logger.info("Client sent request: " + json);
 
         // Receive the server response
         String response = is.readUTF();
         logger.info("Client received response: " + response);
 
-        // Close the socket each time
-        socket.close();
-
         return response;
     }
 
-    String getHost() {return host;}
+    /**
+     * Close the socket and streams to free resources for graceful exit
+     */
+    public void close() {
+        try {
+            if (is != null) {
+                is.close();
+            }
+
+        } catch (IOException ignored) {
+        }
+
+        try {
+            if (os != null) {
+                os.close();
+            }
+
+        } catch (IOException ignored) {
+        }
+
+        try {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+
+        } catch (IOException ignored) {
+        }
+    }
 
 }

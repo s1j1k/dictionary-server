@@ -11,6 +11,13 @@ import org.apache.logging.log4j.LogManager;
 
 import com.example.dictionary.common.Response;
 
+/**
+ * ~ Database Connector Class ~
+ * Handles interaction with SQLite database.
+ *
+ * @author Sally Arnold
+ *         Student ID: 992316
+ */
 public class DatabaseConnector {
   private String jdbcUrl = "jdbc:sqlite:dictionary.db";
 

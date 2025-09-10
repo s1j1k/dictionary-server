@@ -27,6 +27,15 @@ import java.awt.event.ActionListener;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Filter;
 
+/**
+ * ~ Dictionary Server GUI ~
+ * This is a basic GUI for the Dictionary Server.
+ * Integrated this with socket communication and
+ * protocol implementation.
+ *
+ * @author Sally Arnold
+ *         Student ID: 992316
+ */
 public class DictionaryServerGUI extends JFrame {
     // Logger configuration
     private static Logger logger = LogManager.getLogger(DictionaryServerGUI.class);
@@ -43,6 +52,7 @@ public class DictionaryServerGUI extends JFrame {
     int port;
     DictionaryServer dictionaryServer;
 
+
     public DictionaryServerGUI(int port, String initialDictionaryFile) throws SQLException, IOException {
         initializeGUI();
 
@@ -54,8 +64,12 @@ public class DictionaryServerGUI extends JFrame {
         // FIXME implement connection count logic
         // TODO test if this works
         dictionaryServer = new DictionaryServer(initialDictionaryFile);
-        dictionaryServer.setConnectionListener(count -> SwingUtilities
-                .invokeLater(() -> connectionsCountLabel.setText(String.valueOf(count))));
+        // Add connections label as an observer to count of active connections
+        dictionaryServer.addConnectionListener(newCount -> {
+            SwingUtilities.invokeLater(() -> {
+                connectionsCountLabel.setText(Integer.toString(newCount));
+            });
+        });
     }
 
     /**

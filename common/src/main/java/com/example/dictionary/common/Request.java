@@ -1,5 +1,12 @@
 package com.example.dictionary.common;
 
+/**
+ * ~ Common Request Class ~
+ * Provides the structure for client requests.
+ *
+ * @author Sally Arnold
+ *         Student ID: 992316
+ */
 public class Request {
     private String command;
     private String word;

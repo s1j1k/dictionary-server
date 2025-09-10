@@ -12,6 +12,13 @@ import com.example.dictionary.common.Request;
 import com.example.dictionary.common.Response;
 import com.google.gson.Gson;
 
+/**
+ * ~ Client Handler Class ~
+ * Handles each request as a thread
+ *
+ * @author Sally Arnold
+ *         Student ID: 992316
+ */
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
     private DictionaryServer dictionaryServer;
@@ -32,7 +39,7 @@ public class ClientHandler implements Runnable {
         DataOutputStream os = null;
         try {
             // FIXME implement some other logic for counting number of connections
-            // dictionaryServer.incrementNumActiveConnections();
+            dictionaryServer.incrementNumActiveConnections();
 
             is = new DataInputStream(clientSocket.getInputStream());
             os = new DataOutputStream(clientSocket.getOutputStream());
@@ -122,9 +129,9 @@ public class ClientHandler implements Runnable {
             }
             // Close the connection after each request
             try {
-                clientSocket.close();
                 // TODO use some kind of hook to make this update in the GUI
-                // dictionaryServer.decrementNumActiveConnections();
+                dictionaryServer.decrementNumActiveConnections();
+                clientSocket.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
