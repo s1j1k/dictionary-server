@@ -33,109 +33,67 @@ public class ClientHandler implements Runnable {
         this.dictionaryServer = dictionaryServer;
     }
 
-    public void run() throws RuntimeException {
-        // Get a communication stream associated with the socket
-        DataInputStream is = null;
-        DataOutputStream os = null;
-        try {
-            // FIXME implement some other logic for counting number of connections
+    public void run() {
+        try (DataInputStream is = new DataInputStream(clientSocket.getInputStream());
+                DataOutputStream os = new DataOutputStream(clientSocket.getOutputStream())) {
+
             dictionaryServer.incrementNumActiveConnections();
 
-            is = new DataInputStream(clientSocket.getInputStream());
-            os = new DataOutputStream(clientSocket.getOutputStream());
-            String json = is.readUTF();
-            logger.info("Server received request: " + json);
+            while (true) {
+                try {
+                    String json = is.readUTF();
+                    logger.info("Server received request: " + json);
 
-            Request request = gson.fromJson(json, Request.class);
-            Response response = null;
+                    Request request = gson.fromJson(json, Request.class);
+                    Response response = handleRequest(request);
 
-            switch (request.getCommand()) {
-                case "ping":
-                    try {
-                        response = new Response("success", "Successfully pinged server.");
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
+                    String jsonResponseString = gson.toJson(response);
+                    os.writeUTF(jsonResponseString);
+                    os.flush();
+
+                } catch (IOException e) {
+                    // Exit the loop when client disconnects
+                    logger.info("Client disconnected or error occurred, closing handler.");
                     break;
-
-                case "searchWord":
-                    try {
-                        response = dictionaryServer.databaseConnector.searchWord(request.getWord());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                case "addWord":
-                    try {
-                        response = dictionaryServer.databaseConnector.addWord(request.getWord(), request.getMeanings());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                case "removeWord":
-                    try {
-                        response = dictionaryServer.databaseConnector.removeWord(request.getWord());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                case "addMeaning":
-                    try {
-                        response = dictionaryServer.databaseConnector.addMeaning(request.getWord(),
-                                request.getNewMeaning());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                case "updateMeaning":
-                    try {
-                        response = dictionaryServer.databaseConnector.updateMeaning(request.getWord(),
-                                request.getOldMeaning(), request.getNewMeaning());
-                    } catch (Exception e) {
-                        response = new Response("fail", "Error: " + e.getMessage());
-                    }
-                    break;
-
-                default:
-                    logger.info("Invalid request command received");
-                    response = new Response("fail", "Invalid request command received");
+                }
             }
-
-            // Send back the response
-            if (response == null) {
-                response = new Response("fail", "Failed to form response");
-            }
-            String jsonResponseString = gson.toJson(response);
-            os.writeUTF(jsonResponseString);
-
         } catch (IOException e) {
-            // Don't close the server because of one client's IOException
-            logger.error("An error occurred while handling client.", e);
+            logger.error("Error setting up client streams.", e);
         } finally {
-            // When done, just close the connection and exit
+            dictionaryServer.decrementNumActiveConnections();
             try {
-                is.close();
-            } catch (IOException e) {
-                logger.error("An error occurred while closing input stream.", e);
-            }
-            try {
-                os.close();
-            } catch (IOException e) {
-                logger.error("An error occurred while closing output stream.", e);
-            }
-            // Close the connection after each request
-            try {
-                // TODO use some kind of hook to make this update in the GUI
-                dictionaryServer.decrementNumActiveConnections();
                 clientSocket.close();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                logger.error("Error closing client socket.", e);
             }
+        }
+    }
+
+    private Response handleRequest(Request request) {
+        try {
+            switch (request.getCommand()) {
+                case "ping":
+                    return new Response("success", "Successfully pinged server.");
+                case "searchWord":
+                    return dictionaryServer.databaseConnector.searchWord(request.getWord());
+                case "addWord":
+                    return dictionaryServer.databaseConnector.addWord(request.getWord(), request.getMeanings());
+                case "removeWord":
+                    return dictionaryServer.databaseConnector.removeWord(request.getWord());
+                case "addMeaning":
+                    return dictionaryServer.databaseConnector.addMeaning(request.getWord(), request.getNewMeaning());
+                case "updateMeaning":
+                    return dictionaryServer.databaseConnector.updateMeaning(
+                            request.getWord(), request.getOldMeaning(), request.getNewMeaning());
+                default:
+                    logger.info("Invalid request command received");
+                    return new Response("fail", "Invalid request command received");
+            }
+        } catch (Exception e) {
+            // Use the error message from database functions
+            return new Response("fail", "Error: " + e.getMessage());
         }
 
     }
+
 }
