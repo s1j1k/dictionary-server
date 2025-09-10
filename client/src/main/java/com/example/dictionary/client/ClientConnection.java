@@ -13,7 +13,7 @@ import com.example.dictionary.common.Response;
 /**
  * Client Connection class
  * Provides a persistent socket connection
- *  to be used for all messages with the server
+ * to be used for all messages with the server
  *
  * @author Sally Arnold
  *         Student ID: 992316
@@ -34,17 +34,35 @@ public class ClientConnection {
     public ClientConnection(String host, int port) throws IOException {
         this.host = host;
         this.port = port;
+        // FIXME this causes initialization to fail if server isn't connected
+        // initialize();
+    }
+
+    private void initialize() throws UnknownHostException, IOException {
+        logger.info("Initializing client connection to server...");
+        socket = new Socket(host, port);
+        os = new DataOutputStream(socket.getOutputStream());
+        is = new DataInputStream(socket.getInputStream());
+        logger.info("Server connection initialized!");
     }
 
     /**
-     * Ping the server and raise an exception if it doesn't respond
+     * Initialize client connection if not done and ping the server
+     * Raise an exception if it fails
      * 
      * @throws IOException - if the connection to server was unsuccessful
      */
     public void pingServer() throws IOException {
-        socket = new Socket(host, port);
-        os = new DataOutputStream(socket.getOutputStream());
-        is = new DataInputStream(socket.getInputStream());
+        try {
+            if (socket == null || socket.isClosed()) {
+                initialize();
+            }
+        } catch (IOException e) {
+            // Throw away the failed connection
+            close();
+            logger.error("Error occurred while initializing socket.", e);
+            throw new IOException(e);
+        }
 
         // Send a ping request to server
         Request request = new Request("ping");
@@ -56,11 +74,11 @@ public class ClientConnection {
                 throw new IOException("Did not receive success status from server.");
             }
         } catch (IOException e) {
-            // Throw an exception to be handled in overarching continuous ping thread
-            throw new IOException(e);
-        } finally {
             // If failed, discard the socket and its streams
             close();
+            logger.error("An error occurred while pinging server", e);
+            // Throw an exception to be handled in overarching continuous ping thread
+            throw new IOException(e);
         }
     }
 

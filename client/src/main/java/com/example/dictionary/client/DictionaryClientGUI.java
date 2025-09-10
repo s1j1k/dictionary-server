@@ -357,7 +357,7 @@ public class DictionaryClientGUI extends JFrame {
             response = gson.fromJson(jsonResponseString, Response.class);
         } catch (IOException e) {
             // Log detailed error info
-            // TODO print different info? 
+            // TODO print different info?
             // FIXME do something different if the error is different?
             logger.error("An error occured while connecting to server.", e);
             // Assume connection has been lost
@@ -451,6 +451,7 @@ public class DictionaryClientGUI extends JFrame {
             } catch (IOException e) {
                 // ping failed, mark as disconnected, keep trying
                 setConnectionStatus(false);
+                logger.debug("Error occured while pinging server", e);
                 logger.info("Ping failed, retrying...");
             }
         }, 0, 5, TimeUnit.SECONDS);
@@ -466,6 +467,7 @@ public class DictionaryClientGUI extends JFrame {
         // <sleep-duration>
         String serverAddress = new String(args[0]);
         int port = Integer.parseInt(args[1]);
+        // FIXME handle missing command line arguments
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -481,21 +483,17 @@ public class DictionaryClientGUI extends JFrame {
 
                 // Initialize socket connection
                 try {
-                    // Initialize client connection
-                    // NOTE: Uses a new connection for each request
+                    // Initialize persistent client connection
                     ClientConnection clientConnection = new ClientConnection(serverAddress, port);
-                    // TODO OPEN ONE PORT FOR THE WHOLE INTERACTION
                     gui.setClientConnection(clientConnection);
                     // Trigger the client to continually ping server for connection status
+                    // Allows client to persist in case server is down when started
                     gui.pingForConnection();
                 } catch (IOException e) {
                     logger.error("Failed to initialize client.", e);
+                    // Graceful exit to free resources
+                    gui.clientConnection.close();
                 }
-                finally {
-// FIXME graceful exit (do we need the client connection to be closed here)
-        gui.clientConnection.close();
-                }
-                
 
             }
         });

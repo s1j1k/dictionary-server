@@ -3,14 +3,12 @@ package com.example.dictionary.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -110,20 +108,31 @@ public class DictionaryServer {
                 stop();
             }
         });
-        // Try to launch the thread again if we exited our loop
-        serverThread.start();
+        // FIXME if one client quits it doesn't affect all clients
+        // Try to launch the thread again if we exited our loop while still running
+        // FIXME is this not thread safe or something?
+        if (running) {
+            serverThread.start();
+        }
     }
 
     public void stop() {
+        // FIXME change num active connections to none when server drops out
         running = false;
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
             }
         } catch (IOException ignored) {
+        }
+
+        try {
             if (threadPool != null) {
                 threadPool.shutdown();
             }
+        } catch (Exception ignored) {
+
         }
+
     }
 }
