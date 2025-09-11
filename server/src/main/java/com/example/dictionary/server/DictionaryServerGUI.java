@@ -40,7 +40,7 @@ public class DictionaryServerGUI extends JFrame {
     int port;
     DictionaryServer dictionaryServer;
 
-    public DictionaryServerGUI(int port, String initialDictionaryFile) throws SQLException, IOException {
+    public DictionaryServerGUI(int port, String initialDictionaryFile, int delayMillis) throws SQLException, IOException {
         initializeGUI();
 
         initializeGuiAppender();
@@ -48,7 +48,7 @@ public class DictionaryServerGUI extends JFrame {
         this.port = port;
 
         // Initialize dictionary server
-        dictionaryServer = new DictionaryServer(initialDictionaryFile);
+        dictionaryServer = new DictionaryServer(initialDictionaryFile, delayMillis);
         // Add connections label as an observer to count of active connections
         dictionaryServer.addConnectionListener(newCount -> {
             SwingUtilities.invokeLater(() -> {
@@ -167,9 +167,11 @@ public class DictionaryServerGUI extends JFrame {
         // Parse command line arguments
         String initialDictionaryFile;
         int port;
+        int delayMillis;
         try {
             port = Integer.parseInt(args[0]);
             initialDictionaryFile = args[1];
+            delayMillis = Integer.parseInt(args[2]);
         } catch (Throwable e) {
             logger.error("An error occurred while parsing command line arguments.", e);
             throw new RuntimeException(e);
@@ -189,7 +191,7 @@ public class DictionaryServerGUI extends JFrame {
                 }
 
                 try {
-                    gui = new DictionaryServerGUI(port, initialDictionaryFile);
+                    gui = new DictionaryServerGUI(port, initialDictionaryFile, delayMillis);
                     gui.setVisible(true);
                     logger.info("Dictionary server initialized!");
                     logger.debug("Initial list of words:\n" + gui.dictionaryServer.databaseConnector.getListOfWords());

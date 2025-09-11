@@ -38,9 +38,9 @@ public class DictionaryServer {
     // Use Atomic to make it thread safe
     private final AtomicInteger numActiveConnections = new AtomicInteger(0);
 
-    public DictionaryServer(String intialDictionaryFile) throws IOException, SQLException {
+    public DictionaryServer(String intialDictionaryFile, int delayMillis) throws IOException, SQLException {
         // Initialize the dictionary database
-        databaseConnector = new DatabaseConnector(intialDictionaryFile);
+        databaseConnector = new DatabaseConnector(intialDictionaryFile, delayMillis);
     }
 
     // Logic to pass number of active connections to the GUI

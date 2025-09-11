@@ -462,8 +462,16 @@ public class DictionaryClientGUI extends JFrame {
         // Parse command line arguments
         // Expected: java DictionaryClient.jar <server-address> <server-port>
         // <sleep-duration>
-        String serverAddress = new String(args[0]);
-        int port = Integer.parseInt(args[1]);
+        String serverAddress;
+        int port;
+
+        try {
+            serverAddress = new String(args[0]);
+            port = Integer.parseInt(args[1]);
+        } catch (Throwable e) {
+            logger.error("An error occurred while parsing command line arguments.", e);
+            throw new RuntimeException(e);
+        }
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
