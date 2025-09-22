@@ -15,8 +15,6 @@ import java.io.Serializable;
  * This is a custom GUI appender that allows the 
  * server log4j2 logger to print to the GUI logs area.
  *
- * @author Sally Arnold
- *         Student ID: 992316
  */
 public class GuiAppender extends AbstractAppender {
 

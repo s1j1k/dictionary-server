@@ -19,8 +19,6 @@ import com.example.dictionary.common.Response;
  * 
  * Handles interaction with SQLite database.
  * 
- * @author Sally Arnold
- *         Student ID: 992316
  */
 public class DatabaseConnector {
 

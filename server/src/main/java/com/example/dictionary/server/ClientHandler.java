@@ -16,8 +16,6 @@ import com.google.gson.Gson;
  * ~ Client Handler Class ~
  * Handles each connection as a thread
  *
- * @author Sally Arnold
- *         Student ID: 992316
  */
 public class ClientHandler implements Runnable {
     private Socket clientSocket;

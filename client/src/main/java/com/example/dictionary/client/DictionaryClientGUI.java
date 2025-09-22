@@ -24,8 +24,6 @@ import com.google.gson.Gson;
  * Integrated this with socket communication and
  * protocol implementation.
  *
- * @author Sally Arnold
- *         Student ID: 992316
  */
 public class DictionaryClientGUI extends JFrame {
 

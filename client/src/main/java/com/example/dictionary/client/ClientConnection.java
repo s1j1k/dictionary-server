@@ -15,8 +15,6 @@ import com.example.dictionary.common.Response;
  * Provides a persistent socket connection
  * to be used for all messages with the server
  *
- * @author Sally Arnold
- *         Student ID: 992316
  */
 
 public class ClientConnection {

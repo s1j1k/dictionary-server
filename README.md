@@ -4,7 +4,6 @@ Server-client multi threaded dictionary system.
 - When the dictionary server is launched, the dictionary data is loaded from a file containing an initial list of words and their meanings. 
 - The server uses a SQLite database to store words along with a meaning for efficient word search. 
 - When words are added or removed, the database is updated to reflect the changes.
-- 
 
 ## Run locally
 

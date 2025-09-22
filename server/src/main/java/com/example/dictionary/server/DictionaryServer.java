@@ -17,8 +17,6 @@ import org.apache.logging.log4j.Logger;
  * ~ Dictionary Server Class ~
  * Handles backend server socket communication.
  * 
- * @author Sally Arnold
- *         Student ID: 992316
  */
 public class DictionaryServer {
 

@@ -4,8 +4,6 @@ package com.example.dictionary.common;
  * ~ Common Response Class ~
  * Provides the structure for server response.
  *
- * @author Sally Arnold
- *         Student ID: 992316
  */
 public class Response {
     private String status;
